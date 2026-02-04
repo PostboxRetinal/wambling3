@@ -6,4 +6,12 @@ ffi = true
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "@opensource/contracts/=lib/openzeppelin-contracts/"
+]
+
+[lint]
+exclude_lints = ["mixed-case-variable"]
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
