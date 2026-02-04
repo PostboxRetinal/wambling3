@@ -12,6 +12,16 @@ remappings = [
     "@opensource/contracts/=lib/openzeppelin-contracts/"
 ]
 
+fs_permissions = [
+    { access = "read", path = "./broadcast" },
+    { access = "read", path = "./reports" },
+    { access = "read", path = "./images" },
+]
+
 [lint]
-exclude_lints = ["mixed-case-variable"]
+exclude_lints = [
+  "mixed-case-variable",
+  "mixed-case-function",
+  "erc20-unchecked-transfer"
+]
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
