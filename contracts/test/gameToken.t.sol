@@ -4,8 +4,8 @@ pragma solidity ^0.8.30;
 import {Test} from "forge-std/Test.sol";
 import {GameToken} from "../src/GameToken.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {IERC20Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 
 contract GameTokenTest is Test {
@@ -136,9 +136,9 @@ contract GameTokenTest is Test {
 
     function testBurnEmitsTransferEvent() public {
         vm.startPrank(OWNER);
-        vm.expectEmit(true, true, false, true, address(diamondToken));
+        vm.expectEmit(true, true, false, true, address(gameToken));
         emit IERC20.Transfer(OWNER, address(0), 100 * 10 ** DECIMALS);
-        diamondToken.burn(100 * 10 ** DECIMALS);
+        gameToken.burn(100 * 10 ** DECIMALS);
         vm.stopPrank();
     }
 
@@ -152,7 +152,7 @@ contract GameTokenTest is Test {
                 100 * 10 ** DECIMALS
             )
         );
-        diamondToken.burnFrom(OWNER, 100 * 10 ** DECIMALS);
+        gameToken.burnFrom(OWNER, 100 * 10 ** DECIMALS);
         vm.stopPrank();
     }
 }
