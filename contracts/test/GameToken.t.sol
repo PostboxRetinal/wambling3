@@ -67,17 +67,17 @@ contract GameTokenTest is Test {
 
     function testTransfer() public {
         // Test transferring tokens
-        vm.prank(OWNER);
-        require(gameToken.transfer(RECIPIENT, 500 * 10 ** DECIMALS), "Transfer failed");
-        assertEq(gameToken.balanceOf(RECIPIENT),500 * 10 ** DECIMALS);
+        vm.prank(RECIPIENT);
+        require(gameToken.transfer(RECIPIENT2, 500 * 10 ** DECIMALS), "Transfer failed");
+        assertEq(gameToken.balanceOf(RECIPIENT2), 500 * 10 ** DECIMALS);
     }
 
     function testTransferEmitsTraferEvent() public {
         // Test that transfer emits Transfer event
-        vm.prank(OWNER);
+        vm.prank(RECIPIENT);
         vm.expectEmit(true, true, false, true, address(gameToken));
-        emit Transfer(OWNER, RECIPIENT, 500 * 10 ** DECIMALS);
-        require(gameToken.transfer(RECIPIENT, 500 * 10 ** DECIMALS), "Transfer failed");
+        emit Transfer(RECIPIENT, RECIPIENT2, 500 * 10 ** DECIMALS);
+        require(gameToken.transfer(RECIPIENT2, 500 * 10 ** DECIMALS), "Transfer failed");
         vm.stopPrank();
     }
 
@@ -125,19 +125,19 @@ contract GameTokenTest is Test {
 
     function testBurn() public {
         // Test burning tokens
-        uint256 initialBalance = gameToken.balanceOf(OWNER);
+        uint256 initialBalance = gameToken.balanceOf(RECIPIENT);
 
-        vm.prank(OWNER);
+        vm.prank(RECIPIENT);
         gameToken.burn(200 * 10 ** DECIMALS);
         
         assertEq(gameToken.totalSupply(), INITIAL_SUPPLY - 200 * 10 ** DECIMALS);    
-        assertEq(gameToken.balanceOf(OWNER), initialBalance - 200 * 10 ** DECIMALS);
+        assertEq(gameToken.balanceOf(RECIPIENT), initialBalance - 200 * 10 ** DECIMALS);
     }
 
     function testBurnEmitsTransferEvent() public {
-        vm.startPrank(OWNER);
+        vm.startPrank(RECIPIENT);
         vm.expectEmit(true, true, false, true, address(gameToken));
-        emit IERC20.Transfer(OWNER, address(0), 100 * 10 ** DECIMALS);
+        emit IERC20.Transfer(RECIPIENT, address(0), 100 * 10 ** DECIMALS);
         gameToken.burn(100 * 10 ** DECIMALS);
         vm.stopPrank();
     }
