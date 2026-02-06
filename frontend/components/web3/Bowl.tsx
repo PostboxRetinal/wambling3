@@ -1,48 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
+import { useBowl } from "@/hooks/web3/useBowl";
 
 export const Bowl = () => {
-  const [betAmount, setBetAmount] = useState("");
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [coins, setCoins] = useState<{ id: number; amount: string }[]>([]);
-
-  const quickAmounts = [
-    { label: "0.001", value: "0.001" },
-    { label: "0.01", value: "0.01" },
-    { label: "0.05", value: "0.05" },
-    { label: "0.1", value: "0.1" },
-  ];
-
-  const handleQuickAmount = (amount: string) => {
-    setBetAmount(amount);
-  };
-
-  const handleBet = () => {
-    if (!betAmount || parseFloat(betAmount) <= 0) {
-      return;
-    }
-
-    setIsAnimating(true);
-    const coinId = Date.now();
-    setCoins((prev) => [...prev, { id: coinId, amount: betAmount }]);
-
-    setTimeout(() => {
-      setCoins((prev) => prev.filter((coin) => coin.id !== coinId));
-      setIsAnimating(false);
-    }, 1000);
-  };
-
-  const handleMaxBet = () => {
-    setBetAmount("0.1");
-  };
+  const {
+    betAmount,
+    setBetAmount,
+    isAnimating,
+    coins,
+    quickAmounts,
+    handleQuickAmount,
+    handleBet,
+    handleMaxBet,
+    isBetValid,
+  } = useBowl();
 
   return (
     <div className="space-y-4">
-      {/* Main Bowl Area */}
       <Card className="border-border-primary bg-gradient-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5 animate-pulse" />
         <CardHeader>
@@ -120,7 +97,7 @@ export const Bowl = () => {
 
             <Button
               onClick={handleBet}
-              disabled={isAnimating || !betAmount || parseFloat(betAmount) <= 0}
+              disabled={isAnimating || !isBetValid}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-darker transition-all duration-300 shadow-lg hover:shadow-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isAnimating ? (

@@ -18,7 +18,6 @@ export const StartBowl = () => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-4">
-          {/* Dice Game */}
           <div 
             onClick={handleNavigateToBowl}
             className="group relative overflow-hidden rounded-xl border border-border-primary bg-gradient-to-br from-bg-tertiary to-bg-secondary p-6 hover:border-primary/50 hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
