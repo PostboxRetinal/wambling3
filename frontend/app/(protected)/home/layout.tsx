@@ -7,8 +7,8 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-primary to-bg-secondary">
-      <div className="container mx-auto px-4 py-8">
+    <main className=" bg-gradient-to-br from-bg-primary via-bg-primary to-bg-secondary">
+      <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Wallet & Stats */}
           <div className="lg:col-span-1 space-y-6">
