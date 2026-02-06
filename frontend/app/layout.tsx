@@ -3,6 +3,14 @@ import { PrivyProvider } from "./providers/privy-provider";
 import { Web3Provider } from "./providers/web3-provider";
 import { Toaster } from "sonner";
 
+export const metadata = {
+  title: "Wambling3",
+  description: "A web3 social media platform",
+  icons: {
+    icon: "/logo.svg",
+  },
+};
+
 export default function RootLayout({
   children,
 }: {
