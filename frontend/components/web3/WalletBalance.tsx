@@ -6,6 +6,7 @@ import {
   AVAILABLE_CHAINS,
 } from "@/hooks/web3/useWalletBalance";
 import {
+  Button,
   Card,
   CardContent,
   Select,
@@ -14,12 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
+import { Copy, Check } from "lucide-react";
 import type { Chain } from "viem";
 
 export const WalletBalance = () => {
   const [selectedChain, setSelectedChain] = useState<Chain>(
     AVAILABLE_CHAINS[1].chain,
-  ); // Default a Sepolia
+  );
+  const [copied, setCopied] = useState(false);
   const { balance, isLoading, error, address } = useWalletBalance({
     chain: selectedChain,
   });
@@ -46,6 +49,14 @@ export const WalletBalance = () => {
     }
   };
 
+  const handleCopyAddress = async () => {
+    if (address) {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <Card className="w-full border-border-primary bg-gradient-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm">
       <CardContent className="pt-6">
@@ -54,9 +65,22 @@ export const WalletBalance = () => {
             <span className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
               Wallet
             </span>
-            <code className="text-sm text-text-primary font-mono bg-bg-primary/50 px-3 py-1 rounded-md border border-border-primary/20">
-              {formatAddress(address)}
-            </code>
+            <div className="flex items-center gap-2">
+              <code className="text-sm text-text-primary font-mono px-3 py-1 rounded-md">
+                {formatAddress(address)}
+              </code>
+              <Button
+                onClick={handleCopyAddress}
+                className="p-2 hover:bg-bg-primary/50 rounded-md transition-colors border border-border-primary/20"
+                title="Copiar dirección"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-text-tertiary hover:text-text-primary" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">

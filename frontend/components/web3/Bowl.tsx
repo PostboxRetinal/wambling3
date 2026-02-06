@@ -45,7 +45,7 @@ export const Bowl = () => {
             </div>
           ))}
 
-          <div className="flex flex-col items-center justify-center py-3">
+          <div className="flex flex-col items-center justify-center py-4">
             <div className="relative w-32 h-32 rounded-full bg-gradient-to-b from-bg-tertiary via-bg-secondary to-primary/20 border-8 border-primary/40 shadow-2xl flex items-center justify-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-b from-primary/30 to-primary/10 border-4 border-primary/30 flex items-center justify-center">
                 <div className="text-center">
