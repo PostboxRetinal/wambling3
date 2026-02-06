@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { DiceIcon } from "@/components/ui/DiceIcon";
+import { DiceIcon } from "@/components/common/DiceIcon";
+import { Button } from "@/components/ui/button";
 
 export default function PublicHomePage() {
   return (
@@ -9,23 +10,19 @@ export default function PublicHomePage() {
       </h1>
 
       <p className="max-w-md text-center text-text-secondary">
-        Apuesta en juegos de mesa tradicionales usando crypto,
-        sin fricción y sin efectivo.
+        Apuesta en juegos de mesa tradicionales usando crypto, sin fricción y
+        sin efectivo.
       </p>
 
       <div className="flex gap-4">
-        <Link
-          href="/login"
-          className="rounded-xl border border-border-primary bg-bg-secondary px-6 py-3 font-semibold text-text-primary transition-colors hover:bg-primary-dark"
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
+          className="border-border-primary bg-bg-secondary text-text-primary hover:bg-primary-dark"
         >
-          Iniciar sesión
-        </Link>
-        <Link
-          href="/home"
-          className="rounded-xl border border-border-primary bg-primary-dark px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-darker"
-        >
-          Ir al lobby
-        </Link>
+          <Link href="/login">Iniciar sesión</Link>
+        </Button>
       </div>
     </main>
   );

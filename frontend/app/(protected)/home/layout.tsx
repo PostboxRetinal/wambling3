@@ -1,18 +1,19 @@
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
-import { LogoutButton } from "@/components/auth/LogoutButton";
-import { DiceIcon } from "@/components/ui/DiceIcon";
+"use client";
 
-export default async function ProtectedLayout({
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { DiceIcon } from "@/components/common/DiceIcon";
+import { FullScreenLoader } from "@/components/common/FullScreenLoader";
+import { usePrivy } from "@privy-io/react-auth";
+
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { ready, user } = usePrivy();
 
-  if (!user) {
-    redirect("/login");
+  if (!ready) {
+    return <FullScreenLoader message="Inicializando..." />;
   }
 
   return (
@@ -24,7 +25,9 @@ export default async function ProtectedLayout({
             <h1 className="text-xl font-bold text-primary">Wambling3</h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-text-secondary">{user.email}</span>
+            <p className="text-text-secondary">
+              {user?.email?.address || user?.wallet?.address}
+            </p>
             <LogoutButton />
           </div>
         </div>

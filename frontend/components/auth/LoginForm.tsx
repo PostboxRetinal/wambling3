@@ -1,120 +1,166 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabase/client";
-import { DiceIcon } from "@/components/ui/DiceIcon";
-import { toast } from "sonner";
+import { useEffect, useRef } from "react";
+import { DiceIcon } from "@/components/common/DiceIcon";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  Label,
+} from "@/components/ui";
+import { useEmailLogin } from "@/hooks/auth/useEmailLogin";
 
 export function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const {
+    email,
+    setEmail,
+    code,
+    setCode,
+    isCodeSent,
+    isLoading,
+    statusMessage,
+    handleSendCode,
+    handleLogin,
+    resetCodeForm,
+  } = useEmailLogin();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const lastProcessedCode = useRef<string>("");
 
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        // Manejo especial para rate limiting
-        if (error.message?.includes("429") || error.message?.toLowerCase().includes("rate limit")) {
-          toast.error("Demasiadas solicitudes", {
-            description: "Por favor espera unos minutos antes de intentar de nuevo."
-          });
-          setLoading(false);
-          return;
-        }
-        throw error;
-      }
-      
-      toast.success("¡Enlace enviado!", {
-        description: `Revisa tu email: ${email}`
-      });
-      setSent(true);
-    } catch (err: Error | unknown) {
-      toast.error("Error al enviar el email", {
-        description: err instanceof Error ? err.message : "Intenta de nuevo"
-      });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (code.length === 6 && !isLoading && code !== lastProcessedCode.current) {
+      lastProcessedCode.current = code;
+      handleLogin();
     }
-  };
+  }, [code, isLoading]);
 
-  if (sent) {
-    return (
-      <div className="flex flex-col items-center gap-6 rounded-2xl border border-border-primary bg-bg-secondary p-10 shadow-2xl">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-dark text-4xl shadow-lg">
-          📧
-        </div>
-        <h2 className="text-3xl font-bold text-primary">¡Revisa tu email!</h2>
-        <p className="text-center text-lg text-text-primary">
-          Te enviamos un link mágico a
-        </p>
-        <p className="text-xl font-semibold text-primary">{email}</p>
-        <p className="text-sm text-text-secondary">
-          Haz click en el enlace para iniciar sesión de forma segura
-        </p>
-        <button
-          onClick={() => {
-            setSent(false);
-            setEmail("");
-          }}
-          className="mt-4 text-sm text-primary transition-all hover:opacity-80 hover:underline"
-        >
-          ← Usar otro email
-        </button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (code.length < 6) {
+      lastProcessedCode.current = "";
+    }
+  }, [code]);
 
   return (
-    <form
-      onSubmit={handleLogin}
-      className="flex w-full max-w-md flex-col gap-6 rounded-2xl border border-border-primary bg-bg-secondary p-10 shadow-2xl"
-    >
-      <div className="text-center">
+    <Card className="w-full max-w-md border-border-primary bg-bg-secondary shadow-2xl">
+      <CardHeader className="text-center">
         <div className="mb-3 flex justify-center">
           <DiceIcon className="h-16 w-16 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold text-primary">Iniciar sesión</h2>
-        <p className="mt-2 text-sm text-text-secondary">
-          Accede a Wambling3 con tu email
-        </p>
-      </div>
+        <CardTitle className="text-3xl text-primary">Iniciar sesión</CardTitle>
+        <CardDescription className="text-text-secondary">
+          {statusMessage ||
+            (isCodeSent
+              ? "Revisa tu email e ingresa el código"
+              : "Accede a Wambling3 con tu email")}
+        </CardDescription>
+      </CardHeader>
 
-      <div className="flex flex-col gap-3">
-        <label
-          htmlFor="email"
-          className="text-sm font-medium text-text-primary"
-        >
-          Correo electrónico
-        </label>
-        <input
-          id="email"
-          type="email"
-          placeholder="tu@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={loading}
-          className="rounded-xl border border-border-primary bg-bg-tertiary px-4 py-3 text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-        />
-      </div>
+      <CardContent className="flex flex-col gap-4">
+        {!isCodeSent ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email" className="text-text-primary">
+              Correo electrónico
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.currentTarget.value)}
+              disabled={isLoading}
+              required
+              className="h-11 border-border-primary bg-bg-tertiary text-text-primary placeholder:text-text-tertiary"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col gap-3 text-center">
+              <Label className="text-text-primary text-base">
+                Enviado a{" "}
+                <span className="text-text-secondary font-medium">{email}</span>
+              </Label>
+            </div>
+            <div className="flex justify-center w-full py-2">
+              <InputOTP
+                maxLength={6}
+                value={code}
+                onChange={setCode}
+                disabled={isLoading}
+                containerClassName="gap-3"
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot
+                    index={0}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                  <InputOTPSlot
+                    index={1}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                  <InputOTPSlot
+                    index={2}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                  <InputOTPSlot
+                    index={3}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                  <InputOTPSlot
+                    index={4}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                  <InputOTPSlot
+                    index={5}
+                    className="w-12 h-14 text-lg font-semibold border-border-primary bg-bg-tertiary text-text-primary transition-all"
+                  />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+          </div>
+        )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-xl bg-primary-dark px-6 py-4 font-semibold text-white shadow-lg transition-all hover:bg-primary-darker disabled:opacity-50"
-      >
-        {loading ? "Enviando..." : "Enviar enlace mágico"}
-      </button>
-    </form>
+        {!isCodeSent ? (
+          <Button
+            type="button"
+            onClick={handleSendCode}
+            disabled={!email || isLoading}
+            size="lg"
+            className="bg-primary-dark hover:bg-primary-darker"
+          >
+            {isLoading ? "Enviando..." : "Enviar código"}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-3 mt-2">
+            <Button
+              type="button"
+              onClick={handleLogin}
+              disabled={code.length !== 6 || isLoading}
+              size="lg"
+              className="bg-primary-dark hover:bg-primary-darker"
+            >
+              {isLoading
+                ? statusMessage || "Verificando..."
+                : "Verificar código"}
+            </Button>
+            <Button
+              type="button"
+              onClick={resetCodeForm}
+              disabled={isLoading}
+              variant="ghost"
+              size="sm"
+              className="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
+            >
+              ← Cambiar email
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

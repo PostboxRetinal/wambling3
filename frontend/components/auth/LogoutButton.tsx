@@ -1,33 +1,38 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
+import { Button } from "@/components/ui";
 
 export function LogoutButton() {
   const router = useRouter();
+  const { logout } = usePrivy();
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await logout();
       toast.success("Sesión cerrada", {
-        description: "Hasta pronto"
+        description: "Hasta pronto",
       });
       router.push("/login");
       router.refresh();
     } catch (error) {
       toast.error("Error al cerrar sesión", {
-        description: error instanceof Error ? error.message : "Intenta de nuevo"
+        description:
+          error instanceof Error ? error.message : "Intenta de nuevo",
       });
     }
   };
 
   return (
-    <button
+    <Button
       onClick={handleLogout}
-      className="rounded-xl border border-border-primary bg-bg-tertiary px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-primary-dark"
+      variant="outline"
+      size="sm"
+      className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
     >
       Cerrar sesión
-    </button>
+    </Button>
   );
 }

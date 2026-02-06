@@ -4,6 +4,7 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
+import { useState } from "react";
 
 const config = createConfig(
   getDefaultConfig({
@@ -25,14 +26,14 @@ const config = createConfig(
 
     // Optional App Info
     appDescription: "Your App Description",
-    appUrl: "https://family.co", // your app's url
+    appUrl: typeof window !== "undefined" ? window.location.origin : "https://family.co",
     appIcon: "https://family.co/logo.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
   }),
 );
 
-const queryClient = new QueryClient();
-
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
