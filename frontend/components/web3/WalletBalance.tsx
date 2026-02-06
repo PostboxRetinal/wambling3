@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   useWalletBalance,
   AVAILABLE_CHAINS,
-} from "@/hooks/web3/useWalletBalance";
+} from "@/hooks/web3/useWallet";
 import {
   Button,
   Card,
@@ -17,13 +17,14 @@ import {
 } from "@/components/ui";
 import { Copy, Check } from "lucide-react";
 import type { Chain } from "viem";
+import { TransactionDialog } from "./TransactionDialog";
 
 export const WalletBalance = () => {
   const [selectedChain, setSelectedChain] = useState<Chain>(
     AVAILABLE_CHAINS[1].chain,
   );
   const [copied, setCopied] = useState(false);
-  const { balance, isLoading, error, address } = useWalletBalance({
+  const { balance, isLoading, address, refetch } = useWalletBalance({
     chain: selectedChain,
   });
 
@@ -108,31 +109,33 @@ export const WalletBalance = () => {
               </Select>
             </div>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-              Balance
-            </span>
-            <div className="flex items-center gap-2">
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-text-tertiary text-sm">
-                    Cargando...
-                  </span>
-                </div>
-              ) : error ? (
-                <span className="text-red-500 text-sm">{error}</span>
-              ) : (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
-                    {formatBalance(balance)}
-                  </span>
-                  <span className="text-lg font-semibold text-text-secondary">
-                    {selectedChain.nativeCurrency?.symbol || "ETH"}
-                  </span>
-                </div>
-              )}
+          <div className="flex flex-row gap-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                Balance
+              </span>
+              <div className="flex items-center gap-2">
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                    <span className="text-text-tertiary text-sm">
+                      Cargando...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+                      {formatBalance(balance)}
+                    </span>
+                    <span className="text-lg font-semibold text-text-secondary">
+                      {selectedChain.nativeCurrency?.symbol || "ETH"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-end flex-1">
+              <TransactionDialog onTransactionComplete={refetch} />
             </div>
           </div>
         </div>
