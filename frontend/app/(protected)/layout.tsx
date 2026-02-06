@@ -26,7 +26,7 @@ export default function ProtectedLayout({
               <DiceIcon className="h-10 w-10 text-primary" />
               <div>
                 <h1 className="text-xl font-bold text-primary">
-                  Wambling Casino
+                  Wambling3
                 </h1>
                 <p className="text-xs text-text-tertiary">
                   Tu lugar para apostar con Web3
