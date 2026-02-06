@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { createPublicClient, http, formatEther } from "viem";
-import { sepolia } from "viem/chains";
+import { createPublicClient, http, formatEther, type Chain } from "viem";
+import { mainnet, sepolia, base, baseSepolia, optimism, arbitrum, polygon } from "viem/chains";
 
-export const useWalletBalance = () => {
+interface UseWalletBalanceProps {
+  chain?: Chain;
+}
+
+export const useWalletBalance = ({ chain = sepolia }: UseWalletBalanceProps = {}) => {
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
   const [balance, setBalance] = useState<string | null>(null);
@@ -18,10 +22,10 @@ export const useWalletBalance = () => {
   // Memorizar el cliente para no recrearlo en cada render
   const publicClient = useMemo(() => {
     return createPublicClient({
-      chain: sepolia,
+      chain,
       transport: http(),
     });
-  }, []);
+  }, [chain]);
 
   const fetchBalance = useCallback(async () => {
     if (!authenticated || !walletAddress) {
@@ -59,5 +63,16 @@ export const useWalletBalance = () => {
     error,
     address: walletAddress,
     refetch: fetchBalance, // Exportar para refetch manual
+    chain,
   };
 };
+
+export const AVAILABLE_CHAINS = [
+  { chain: mainnet, label: "Ethereum" },
+  { chain: sepolia, label: "Ethereum Sepolia" },
+  { chain: base, label: "Base" },
+  { chain: baseSepolia, label: "Base Sepolia" },
+  { chain: optimism, label: "Optimism" },
+  { chain: arbitrum, label: "Arbitrum One" },
+  { chain: polygon, label: "Polygon" },
+] as const;

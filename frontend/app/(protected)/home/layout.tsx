@@ -16,13 +16,11 @@ export default function HomeLayout({
             </div>
 
             <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm">
-              <CardHeader>
+              <CardContent className="space-y-2">
                 <h3 className="text-lg font-semibold text-text-primary">
                   Estadísticas
                 </h3>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary/50 rounded-lg">
                   <span className="text-sm text-text-secondary">
                     Total Apostado
                   </span>
@@ -30,7 +28,7 @@ export default function HomeLayout({
                     0.000 ETH
                   </span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary/50 rounded-lg">
                   <span className="text-sm text-text-secondary">
                     Total Ganado
                   </span>
@@ -38,7 +36,7 @@ export default function HomeLayout({
                     0.000 ETH
                   </span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
+                <div className="flex justify-between items-center p-2 bg-bg-tertiary/50 rounded-lg">
                   <span className="text-sm text-text-secondary">
                     Partidas Jugadas
                   </span>
