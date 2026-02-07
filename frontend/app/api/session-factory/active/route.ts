@@ -17,11 +17,11 @@ export async function GET() {
     });
 
     // [Agent-Generated] Fetch active sessions from the contract.
-    const sessions = await publicClient.readContract({
+    const sessions = (await publicClient.readContract({
       address: assertSessionFactoryAddress(),
       abi: SESSION_FACTORY_ABI,
       functionName: "getActiveSessions",
-    });
+    })) as unknown[];
 
     return NextResponse.json({
       ok: true,

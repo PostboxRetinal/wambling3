@@ -11,6 +11,7 @@ import {
   http,
   isAddress,
   parseEther,
+  type EIP1193Provider,
   type Hex,
   type TransactionReceipt,
 } from "viem";
@@ -104,7 +105,7 @@ export const useSessionFactory = () => {
     };
   }, [authenticated, wallets]);
 
-  const ensureCorrectChain = useCallback(async (provider: any) => {
+  const ensureCorrectChain = useCallback(async (provider: EIP1193Provider) => {
     // [Agent-Generated] Detect current chain and switch if it mismatches.
     const chainIdHex = (await provider.request({
       method: "eth_chainId",
@@ -130,7 +131,8 @@ export const useSessionFactory = () => {
             chainName: SESSION_FACTORY_CHAIN.name,
             rpcUrls: [SESSION_FACTORY_RPC_URL],
             nativeCurrency: SESSION_FACTORY_CHAIN.nativeCurrency,
-            blockExplorerUrls: SESSION_FACTORY_CHAIN.blockExplorers?.default?.url
+            blockExplorerUrls: SESSION_FACTORY_CHAIN.blockExplorers?.default
+              ?.url
               ? [SESSION_FACTORY_CHAIN.blockExplorers.default.url]
               : undefined,
           },
@@ -189,7 +191,7 @@ export const useSessionFactory = () => {
 
       try {
         const { provider, address } = await ensureWalletReady();
-        await ensureCorrectChain(provider);
+        await ensureCorrectChain(provider as EIP1193Provider);
 
         // [Agent-Generated] Build clients for simulate + write flow.
         const walletClient = createWalletClient({
@@ -211,7 +213,8 @@ export const useSessionFactory = () => {
 
         const gameType = GAME_TYPE_MAP[gameId];
 
-        let functionName: "createSession" | "createOnSiteSession" = "createSession";
+        let functionName: "createSession" | "createOnSiteSession" =
+          "createSession";
         let args: readonly unknown[] = [];
         let value: bigint | undefined;
 

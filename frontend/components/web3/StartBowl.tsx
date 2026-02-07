@@ -19,11 +19,11 @@ export const StartBowl = () => {
   };
 
   return (
-    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm">
+    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm h-[270px] flex flex-col">
       <CardHeader>
         <h3 className="text-2xl font-bold text-text-primary">Bowl</h3>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <div className="grid grid-cols-1 gap-4">
           <div
             onClick={() => setIsOpen(true)}

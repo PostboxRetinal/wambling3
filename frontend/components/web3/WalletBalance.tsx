@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useWalletBalance,
-  AVAILABLE_CHAINS,
-} from "@/hooks/web3/useWallet";
+import { useWalletBalance, AVAILABLE_CHAINS } from "@/hooks/web3/useWallet";
 import { useFundWallet, usePrivy } from "@privy-io/react-auth";
 import {
   Button,
@@ -90,8 +87,8 @@ export const WalletBalance = () => {
   };
 
   return (
-    <Card className="w-full border-border-primary bg-gradient-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm">
-      <CardContent className="pt-6">
+    <Card className="w-full border-border-primary bg-gradient-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm h-[270px] flex flex-col">
+      <CardContent className="pt-6 flex-1">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between pb-3 border-b border-border-primary/30">
             <span className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
@@ -165,11 +162,11 @@ export const WalletBalance = () => {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-end flex-1 gap-3">
+            <div className="flex flex-col w-[200px] items-end justify-end flex-1 gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
+                className="border-border-primary w-[200px] bg-bg-tertiary text-text-primary hover:bg-primary-dark"
                 onClick={handleFundWallet}
                 disabled={!ready || !authenticated || !address || isFunding}
               >

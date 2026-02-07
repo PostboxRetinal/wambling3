@@ -14,6 +14,7 @@ import {
   keccak256,
   parseEther,
   type Hex,
+  type EIP1193Provider,
   type TransactionReceipt,
 } from "viem";
 import {
@@ -261,7 +262,7 @@ export const useGameSession = ({
     };
   }, [authenticated, wallets]);
 
-  const ensureCorrectChain = useCallback(async (provider: any) => {
+  const ensureCorrectChain = useCallback(async (provider: EIP1193Provider) => {
     // [Agent-Generated] Switch wallet to the SessionFactory chain if needed.
     const chainIdHex = (await provider.request({
       method: "eth_chainId",
@@ -462,7 +463,7 @@ export const useGameSession = ({
 
       try {
         const { provider, address } = await ensureWalletReady();
-        await ensureCorrectChain(provider);
+        await ensureCorrectChain(provider as EIP1193Provider);
 
         const walletClient = createWalletClient({
           chain: SESSION_FACTORY_CHAIN,
@@ -538,7 +539,7 @@ export const useGameSession = ({
 
       try {
         const { provider, address } = await ensureWalletReady();
-        await ensureCorrectChain(provider);
+        await ensureCorrectChain(provider as EIP1193Provider);
 
         const walletClient = createWalletClient({
           chain: SESSION_FACTORY_CHAIN,
@@ -600,7 +601,7 @@ export const useGameSession = ({
 
       try {
         const { provider, address } = await ensureWalletReady();
-        await ensureCorrectChain(provider);
+        await ensureCorrectChain(provider as EIP1193Provider);
 
         const walletClient = createWalletClient({
           chain: SESSION_FACTORY_CHAIN,

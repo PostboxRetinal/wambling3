@@ -81,7 +81,7 @@ export const TransactionDialog = ({
         <Button
           variant="outline"
           size="sm"
-          className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
+          className="w-[200px] border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
         >
           Transferir fondos
         </Button>

@@ -85,7 +85,10 @@ export const Bowl = () => {
     isBetValid && !isAnimating && !isSubmitting && hasBalance && !isOverBalance;
 
   const formatMaxBet = (value: number) =>
-    value.toFixed(6).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    value
+      .toFixed(6)
+      .replace(/\.0+$/, "")
+      .replace(/(\.\d*?)0+$/, "$1");
 
   const formatAddress = (addr?: string | null) => {
     if (!addr) return "";
@@ -97,7 +100,7 @@ export const Bowl = () => {
     try {
       return formatEther(BigInt(snapshot.minBet));
     } catch (error) {
-      return "";
+      return;
     }
   }, [snapshot?.minBet]);
 
@@ -209,7 +212,10 @@ export const Bowl = () => {
       }));
     }
 
-    const onsiteAddresses = [snapshot.creator ?? null, snapshot.opponent ?? null];
+    const onsiteAddresses = [
+      snapshot.creator ?? null,
+      snapshot.opponent ?? null,
+    ];
     return slots.map((index) => ({
       index,
       address: onsiteAddresses[index],
@@ -283,7 +289,8 @@ export const Bowl = () => {
             Bowl
           </h3>
           <p className="text-sm text-text-secondary">
-            {selectedGameLabel} · {selectedMode === "onchain" ? "On-chain" : "On-site"}
+            {selectedGameLabel} ·{" "}
+            {selectedMode === "onchain" ? "On-chain" : "On-site"}
           </p>
         </CardHeader>
         <CardContent className="relative">
@@ -307,10 +314,26 @@ export const Bowl = () => {
             <div className="relative w-64 h-64 flex items-center justify-center">
               {jugadores.map((jugador, idx) => {
                 const positions = [
-                  { top: "10%", left: "70%", transform: "translate(-50%, -50%)" },
-                  { top: "70%", right: "5%", transform: "translate(50%, -50%)" },
-                  { bottom: "65%", left: "5%", transform: "translate(-50%, 50%)" },
-                  { top: "70%", left: "5%", transform: "translate(-50%, -50%)" },
+                  {
+                    top: "10%",
+                    left: "70%",
+                    transform: "translate(-50%, -50%)",
+                  },
+                  {
+                    top: "70%",
+                    right: "5%",
+                    transform: "translate(50%, -50%)",
+                  },
+                  {
+                    bottom: "65%",
+                    left: "5%",
+                    transform: "translate(-50%, 50%)",
+                  },
+                  {
+                    top: "70%",
+                    left: "5%",
+                    transform: "translate(-50%, -50%)",
+                  },
                 ];
 
                 return (
@@ -390,7 +413,7 @@ export const Bowl = () => {
               </Button>
             </div>
             <p className="text-xs text-text-tertiary">
-              Usa "Unirme" si ya tienes el ID de invitacion.
+              {'Usa "Unirme" si ya tienes el ID de invitacion.'}
             </p>
           </div>
 
@@ -428,7 +451,9 @@ export const Bowl = () => {
                       {slot.index === 0 ? "Jugador 1" : "Jugador 2"}
                     </p>
                     <p className="text-sm text-text-primary font-mono">
-                      {slot.address ? formatAddress(slot.address) : "Esperando jugador"}
+                      {slot.address
+                        ? formatAddress(slot.address)
+                        : "Esperando jugador"}
                     </p>
                     <Input
                       value={playerNames[slotKey] ?? ""}
@@ -523,7 +548,9 @@ export const Bowl = () => {
                   <Button
                     key={value}
                     type="button"
-                    variant={selectedChoice === Number(value) ? "default" : "outline"}
+                    variant={
+                      selectedChoice === Number(value) ? "default" : "outline"
+                    }
                     onClick={() => setSelectedChoice(Number(value))}
                     className="border-border-primary hover:border-primary/50"
                   >
@@ -663,158 +690,162 @@ export const Bowl = () => {
 
           {/* [Agent-Generated] Transaction inputs and contract controls. */}
           {flowMode === "create" && (
-          <div className="mt-2 space-y-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                Cantidad de Apuesta (ETH)
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  max={hasBalance ? balanceNum : undefined}
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  placeholder="0.000"
-                  className="flex-1 text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
-                />
-                <Button
-                  onClick={handleMaxBetWithBalance}
-                  variant="outline"
-                  disabled={!hasBalance}
-                  className="border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  MAX
-                </Button>
-              </div>
-              {isBalanceLoading && (
-                <p className="text-xs text-text-tertiary">Cargando balance...</p>
-              )}
-              {!isBalanceLoading && !hasBalance && (
-                <p className="text-xs text-text-tertiary">
-                  Conecta tu wallet para validar el balance.
-                </p>
-              )}
-              {isOverBalance && (
-                <p className="text-xs text-red-500">
-                  El monto supera tu balance disponible.
-                </p>
-              )}
-              {hasBalance && !isOverBalance && (
-                <p className="text-xs text-text-tertiary">
-                  Balance disponible: {formatMaxBet(balanceNum)} ETH
-                </p>
-              )}
-            </div>
-
-            {/* [Agent-Generated] On-chain sessions require a duration parameter. */}
-            {selectedMode === "onchain" && (
+            <div className="mt-2 space-y-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                  Duracion (minutos)
+                  Cantidad de Apuesta (ETH)
                 </label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(e.target.value)}
-                  placeholder="30"
-                  className="text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
-                />
-                {!isDurationValid && (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    max={hasBalance ? balanceNum : undefined}
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(e.target.value)}
+                    placeholder="0.000"
+                    className="flex-1 text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
+                  />
+                  <Button
+                    onClick={handleMaxBetWithBalance}
+                    variant="outline"
+                    disabled={!hasBalance}
+                    className="border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    MAX
+                  </Button>
+                </div>
+                {isBalanceLoading && (
+                  <p className="text-xs text-text-tertiary">
+                    Cargando balance...
+                  </p>
+                )}
+                {!isBalanceLoading && !hasBalance && (
+                  <p className="text-xs text-text-tertiary">
+                    Conecta tu wallet para validar el balance.
+                  </p>
+                )}
+                {isOverBalance && (
                   <p className="text-xs text-red-500">
-                    La duracion debe ser mayor a 0.
+                    El monto supera tu balance disponible.
+                  </p>
+                )}
+                {hasBalance && !isOverBalance && (
+                  <p className="text-xs text-text-tertiary">
+                    Balance disponible: {formatMaxBet(balanceNum)} ETH
                   </p>
                 )}
               </div>
-            )}
 
-            {/* [Agent-Generated] On-site sessions require an arbiter wallet. */}
-            {selectedMode === "onsite" && (
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                  Direccion del arbitro
-                </label>
-                <Input
-                  value={arbiterAddress}
-                  onChange={(e) => setArbiterAddress(e.target.value)}
-                  placeholder="0x..."
-                  className="text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
-                />
-                {!isArbiterValid && (
-                  <p className="text-xs text-red-500">
-                    La direccion del arbitro es invalida.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-4 gap-2">
-              {quickAmounts.map((quick) => (
-                <Button
-                  key={quick.value}
-                  onClick={() => handleQuickAmount(quick.value)}
-                  variant="outline"
-                  disabled={hasBalance && parseFloat(quick.value) > balanceNum}
-                  className="border-border-primary hover:border-primary/50 hover:bg-primary/10 text-text-primary"
-                >
-                  {quick.label}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              onClick={handleBetWithBalance}
-              disabled={!canBet}
-              className="w-full h-14 text-lg font-bold bg-linear-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-darker transition-all duration-300 shadow-lg hover:shadow-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isAnimating || isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {txState.status === "signing"
-                    ? "Firmando..."
-                    : txState.status === "pending"
-                      ? "Confirmando..."
-                      : "Apostando..."}
-                </span>
-              ) : (
-                `Apostar ${betAmount || "0"} ETH`
+              {/* [Agent-Generated] On-chain sessions require a duration parameter. */}
+              {selectedMode === "onchain" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                    Duracion (minutos)
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(e.target.value)}
+                    placeholder="30"
+                    className="text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
+                  />
+                  {!isDurationValid && (
+                    <p className="text-xs text-red-500">
+                      La duracion debe ser mayor a 0.
+                    </p>
+                  )}
+                </div>
               )}
-            </Button>
 
-            {/* [Agent-Generated] Live transaction status + receipt metadata. */}
-            <div className="rounded-lg border border-border-primary bg-bg-tertiary/40 p-4 space-y-2">
-              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Estado de transaccion
-              </p>
-              <p className="text-sm text-text-secondary">
-                Red activa: {SESSION_FACTORY_CHAIN.name}
-              </p>
-              <p className="text-sm text-text-secondary">
-                Estado: {txState.status}
-              </p>
-              {txState.estimatedGas !== null && (
+              {/* [Agent-Generated] On-site sessions require an arbiter wallet. */}
+              {selectedMode === "onsite" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                    Direccion del arbitro
+                  </label>
+                  <Input
+                    value={arbiterAddress}
+                    onChange={(e) => setArbiterAddress(e.target.value)}
+                    placeholder="0x..."
+                    className="text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
+                  />
+                  {!isArbiterValid && (
+                    <p className="text-xs text-red-500">
+                      La direccion del arbitro es invalida.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-4 gap-2">
+                {quickAmounts.map((quick) => (
+                  <Button
+                    key={quick.value}
+                    onClick={() => handleQuickAmount(quick.value)}
+                    variant="outline"
+                    disabled={
+                      hasBalance && parseFloat(quick.value) > balanceNum
+                    }
+                    className="border-border-primary hover:border-primary/50 hover:bg-primary/10 text-text-primary"
+                  >
+                    {quick.label}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                onClick={handleBetWithBalance}
+                disabled={!canBet}
+                className="w-full h-14 text-lg font-bold bg-linear-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-darker transition-all duration-300 shadow-lg hover:shadow-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnimating || isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {txState.status === "signing"
+                      ? "Firmando..."
+                      : txState.status === "pending"
+                        ? "Confirmando..."
+                        : "Apostando..."}
+                  </span>
+                ) : (
+                  `Apostar ${betAmount || "0"} ETH`
+                )}
+              </Button>
+
+              {/* [Agent-Generated] Live transaction status + receipt metadata. */}
+              <div className="rounded-lg border border-border-primary bg-bg-tertiary/40 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                  Estado de transaccion
+                </p>
                 <p className="text-sm text-text-secondary">
-                  Gas estimado: {txState.estimatedGas.toString()}
+                  Red activa: {SESSION_FACTORY_CHAIN.name}
                 </p>
-              )}
-              {txState.hash && (
-                <p className="text-xs text-text-tertiary break-all">
-                  Tx: {txState.hash}
+                <p className="text-sm text-text-secondary">
+                  Estado: {txState.status}
                 </p>
-              )}
-              {txState.sessionAddress && (
-                <p className="text-xs text-text-tertiary break-all">
-                  Sesion: {txState.sessionAddress}
-                </p>
-              )}
-              {txState.error && (
-                <p className="text-xs text-red-500">{txState.error}</p>
-              )}
+                {txState.estimatedGas !== null && (
+                  <p className="text-sm text-text-secondary">
+                    Gas estimado: {txState.estimatedGas.toString()}
+                  </p>
+                )}
+                {txState.hash && (
+                  <p className="text-xs text-text-tertiary break-all">
+                    Tx: {txState.hash}
+                  </p>
+                )}
+                {txState.sessionAddress && (
+                  <p className="text-xs text-text-tertiary break-all">
+                    Sesion: {txState.sessionAddress}
+                  </p>
+                )}
+                {txState.error && (
+                  <p className="text-xs text-red-500">{txState.error}</p>
+                )}
+              </div>
             </div>
-          </div>
           )}
         </CardContent>
       </Card>
