@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { DiceIcon } from "@/components/common/DiceIcon";
 import { FullScreenLoader } from "@/components/common/FullScreenLoader";
@@ -21,17 +22,15 @@ export default function ProtectedLayout({
       <header className="border-b border-border-primary bg-bg-secondary/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <Link className="flex items-center gap-3" href="/home">
               <DiceIcon className="h-10 w-10 text-primary" />
               <div>
-                <h1 className="text-xl font-bold text-primary">
-                  Wambling3
-                </h1>
+                <h1 className="text-xl font-bold text-primary">Wambling3</h1>
                 <p className="text-xs text-text-tertiary">
                   Tu lugar para apostar con Web3
                 </p>
               </div>
-            </div>
+            </Link>
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-right">
                 <p className="text-xs text-text-tertiary">Usuario</p>
