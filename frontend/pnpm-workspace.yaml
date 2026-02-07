@@ -1,3 +1,10 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@reown/appkit'
+  - bufferutil
+  - keccak
+  - msw
+  - utf-8-validate
