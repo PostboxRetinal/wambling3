@@ -8,6 +8,8 @@ export function useEmailLogin() {
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  // [Agent-Generated] Used to force remount the Privy Captcha on errors.
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   const { sendCode, loginWithCode } = useLoginWithEmail();
   const { createWallet } = useCreateWallet();
@@ -22,7 +24,20 @@ export function useEmailLogin() {
       setStatusMessage("");
     } catch (error) {
       console.error("Error al enviar código:", error);
-      setStatusMessage("Error al enviar el código. Intenta de nuevo.");
+      // [Agent-Generated] Retry captcha if Privy reports captcha failure/timeout.
+      const maybeCaptchaError = error as {
+        privyErrorCode?: string;
+        type?: string;
+      };
+      if (
+        maybeCaptchaError?.type === "Captcha" ||
+        maybeCaptchaError?.privyErrorCode?.startsWith("captcha")
+      ) {
+        setCaptchaKey((prev) => prev + 1);
+        setStatusMessage("Captcha requerido. Intenta de nuevo.");
+      } else {
+        setStatusMessage("Error al enviar el código. Intenta de nuevo.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +94,7 @@ export function useEmailLogin() {
     isCodeSent,
     isLoading,
     statusMessage,
+    captchaKey,
     handleSendCode,
     handleLogin,
     resetCodeForm,

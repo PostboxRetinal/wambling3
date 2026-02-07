@@ -16,6 +16,7 @@ import {
   Label,
 } from "@/components/ui";
 import { useEmailLogin } from "@/hooks/auth/useEmailLogin";
+import { Captcha } from "@privy-io/react-auth";
 
 export function LoginForm() {
   const {
@@ -26,6 +27,7 @@ export function LoginForm() {
     isCodeSent,
     isLoading,
     statusMessage,
+    captchaKey,
     handleSendCode,
     handleLogin,
     resetCodeForm,
@@ -38,7 +40,7 @@ export function LoginForm() {
       lastProcessedCode.current = code;
       handleLogin();
     }
-  }, [code, isLoading]);
+  }, [code, isLoading, handleLogin]);
 
   useEffect(() => {
     if (code.length < 6) {
@@ -160,6 +162,11 @@ export function LoginForm() {
             </Button>
           </div>
         )}
+
+        {/* [Agent-Generated] Privy CAPTCHA mount point (key forces remount on errors) */}
+        <div className="flex justify-center">
+          <Captcha key={captchaKey} />
+        </div>
       </CardContent>
     </Card>
   );
