@@ -5,6 +5,7 @@ import {
   useWalletBalance,
   AVAILABLE_CHAINS,
 } from "@/hooks/web3/useWallet";
+import { useFundWallet, usePrivy } from "@privy-io/react-auth";
 import {
   Button,
   Card,
@@ -18,12 +19,16 @@ import {
 import { Copy, Check } from "lucide-react";
 import type { Chain } from "viem";
 import { TransactionDialog } from "./TransactionDialog";
+import { toast } from "sonner";
 
 export const WalletBalance = () => {
   const [selectedChain, setSelectedChain] = useState<Chain>(
     AVAILABLE_CHAINS[1].chain,
   );
   const [copied, setCopied] = useState(false);
+  const [isFunding, setIsFunding] = useState(false);
+  const { ready, authenticated } = usePrivy();
+  const { fundWallet } = useFundWallet();
   const { balance, isLoading, address, refetch } = useWalletBalance({
     chain: selectedChain,
   });
@@ -55,6 +60,32 @@ export const WalletBalance = () => {
       await navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleFundWallet = async () => {
+    if (!address || !ready || !authenticated || isFunding) return;
+
+    try {
+      setIsFunding(true);
+      await fundWallet({
+        address,
+        options: {
+          uiConfig: {
+            receiveFundsTitle: "Agregar fondos",
+            receiveFundsSubtitle:
+              "Escanea el QR o copia tu dirección para recibir fondos.",
+          },
+        },
+      });
+      await refetch();
+    } catch (error) {
+      console.error("Error al abrir el flujo de funding:", error);
+      toast.error("No se pudo abrir el flujo de funding", {
+        description: "Intenta nuevamente en unos segundos.",
+      });
+    } finally {
+      setIsFunding(false);
     }
   };
 
@@ -134,7 +165,16 @@ export const WalletBalance = () => {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-end flex-1">
+            <div className="flex items-center justify-end flex-1 gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
+                onClick={handleFundWallet}
+                disabled={!ready || !authenticated || !address || isFunding}
+              >
+                {isFunding ? "Abriendo..." : "Agregar fondos"}
+              </Button>
               <TransactionDialog onTransactionComplete={refetch} />
             </div>
           </div>
