@@ -1,4 +1,10 @@
 {
+  "../lib/foundry-devops": {
+    "rev": "efff097a87e70c3d15661c9f2a2daeae0b33d5d5"
+  },
+  "../lib/openzeppelin-contracts": {
+    "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.14.0",

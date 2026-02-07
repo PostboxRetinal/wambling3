@@ -28,6 +28,7 @@ export const Bowl = () => {
   const searchParams = useSearchParams();
   const selectedGame = (searchParams.get("game") ?? "coinflip") as GameId;
   const selectedMode = (searchParams.get("mode") ?? "onchain") as GameMode;
+  const sessionParam = searchParams.get("session") ?? "";
   const selectedGameLabel = GAME_LABELS[selectedGame] ?? "Coin Flip";
   const {
     betAmount,
@@ -48,11 +49,14 @@ export const Bowl = () => {
   } = useBowl({ selectedGame, selectedMode });
 
   // [Agent-Generated] Local session input + player UX state.
+  const [flowMode, setFlowMode] = useState<"create" | "join">("create");
   const [sessionAddressInput, setSessionAddressInput] = useState("");
   const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [nonce, setNonce] = useState<`0x${string}` | "">("");
   const [copiedSession, setCopiedSession] = useState(false);
+  const [inviteWallet, setInviteWallet] = useState("");
+  const [copiedInvite, setCopiedInvite] = useState(false);
 
   const {
     snapshot,
@@ -107,7 +111,7 @@ export const Bowl = () => {
   }, [snapshot?.stake]);
 
   const joinAmount =
-    betAmount || (selectedMode === "onchain" ? minBetEth : stakeEth);
+    (selectedMode === "onchain" ? minBetEth : stakeEth) || betAmount;
 
   const isJoinSubmitting =
     actionState.status === "signing" || actionState.status === "pending";
@@ -139,7 +143,7 @@ export const Bowl = () => {
   };
 
   const handleBetWithBalance = () => {
-    if (!canBet) return;
+    if (!canBet || flowMode !== "create") return;
     handleBet();
   };
 
@@ -148,6 +152,16 @@ export const Bowl = () => {
     await navigator.clipboard.writeText(sessionAddressInput);
     setCopiedSession(true);
     setTimeout(() => setCopiedSession(false), 2000);
+  };
+
+  const handleCopyInvite = async () => {
+    if (!sessionAddressInput) return;
+    const inviteLink = `${window.location.origin}/home/bowl?game=${selectedGame}&mode=${selectedMode}&session=${sessionAddressInput}`;
+    const target = inviteWallet ? ` (${inviteWallet})` : "";
+    const message = `Unete a mi partida de ${selectedGameLabel} en ${SESSION_FACTORY_CHAIN.name}${target}. Sesion: ${sessionAddressInput}. Link: ${inviteLink}`;
+    await navigator.clipboard.writeText(message);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
   };
 
   const handleGenerateNonce = () => {
@@ -159,7 +173,7 @@ export const Bowl = () => {
   const handleJoinSession = async () => {
     if (selectedMode === "onchain" && canJoinOnchain) {
       await joinOnchain({
-        betAmount: joinAmount,
+        betAmount: minBetEth || joinAmount,
         choice: selectedChoice as number,
         nonce: nonce as `0x${string}`,
       });
@@ -167,7 +181,7 @@ export const Bowl = () => {
     }
 
     if (selectedMode === "onsite" && canJoinOnsite) {
-      await joinOnsite({ betAmount: joinAmount });
+      await joinOnsite({ betAmount: stakeEth || joinAmount });
     }
   };
 
@@ -240,9 +254,18 @@ export const Bowl = () => {
     // [Agent-Generated] Auto-fill the session input when a new session is created.
     if (txState.sessionAddress) {
       setSessionAddressInput(txState.sessionAddress);
+      setFlowMode("join");
       refresh();
     }
   }, [refresh, txState.sessionAddress]);
+
+  useEffect(() => {
+    // [Agent-Generated] Honor invite links that include a session param.
+    if (sessionParam) {
+      setSessionAddressInput(sessionParam);
+      setFlowMode("join");
+    }
+  }, [sessionParam]);
 
   useEffect(() => {
     // [Agent-Generated] Refresh session data when the address or mode changes.
@@ -324,7 +347,7 @@ export const Bowl = () => {
           </div>
 
           {/* [Agent-Generated] Dynamic game visual for CoinFlip / RPS. */}
-          {selectedMode === "onchain" && (
+          {selectedMode === "onchain" && flowMode === "join" && (
             <div className="mt-6 flex flex-col items-center gap-3">
               <div className="w-32 h-32 rounded-full border-4 border-primary/40 bg-linear-to-br from-bg-tertiary via-bg-secondary to-primary/20 shadow-xl flex items-center justify-center">
                 <div
@@ -342,6 +365,34 @@ export const Bowl = () => {
               </p>
             </div>
           )}
+
+          {/* [Agent-Generated] Create vs join switch to avoid accidental session creation. */}
+          <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+              Accion
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={flowMode === "create" ? "default" : "outline"}
+                onClick={() => setFlowMode("create")}
+                className="border-border-primary"
+              >
+                Crear sesion
+              </Button>
+              <Button
+                type="button"
+                variant={flowMode === "join" ? "default" : "outline"}
+                onClick={() => setFlowMode("join")}
+                className="border-border-primary"
+              >
+                Unirme a sesion
+              </Button>
+            </div>
+            <p className="text-xs text-text-tertiary">
+              Usa "Unirme" si ya tienes el ID de invitacion.
+            </p>
+          </div>
 
           {/* [Agent-Generated] Player lobby with temporary names. */}
           <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
@@ -414,6 +465,7 @@ export const Bowl = () => {
                   value={sessionAddressInput}
                   onChange={(e) => {
                     setSessionAddressInput(e.target.value);
+                    setFlowMode("join");
                     resetActionState();
                   }}
                   placeholder="0x..."
@@ -430,6 +482,31 @@ export const Bowl = () => {
               </div>
               <p className="text-xs text-text-tertiary">
                 Comparte esta direccion con el otro jugador para que se una.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-text-secondary">
+                Wallet a invitar
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={inviteWallet}
+                  onChange={(e) => setInviteWallet(e.target.value)}
+                  placeholder="0x..."
+                  className="flex-1 text-sm bg-bg-tertiary border-border-primary text-text-primary"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleCopyInvite}
+                  disabled={!sessionAddressInput}
+                  className="border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  {copiedInvite ? "Mensaje copiado" : "Copiar invitacion"}
+                </Button>
+              </div>
+              <p className="text-xs text-text-tertiary">
+                Copia el mensaje y envialo por chat o wallet.
               </p>
             </div>
           </div>
@@ -486,12 +563,13 @@ export const Bowl = () => {
                 <Input
                   value={joinAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
+                  disabled={!!minBetEth}
                   placeholder={minBetEth || "0.0"}
                   className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
                 />
                 {minBetEth && (
                   <p className="text-xs text-text-tertiary">
-                    Minimo requerido: {minBetEth} ETH
+                    Minimo requerido: {minBetEth} ETH (debe igualarse)
                   </p>
                 )}
               </div>
@@ -533,7 +611,7 @@ export const Bowl = () => {
             </div>
           )}
 
-          {selectedMode === "onsite" && (
+          {selectedMode === "onsite" && flowMode === "join" && (
             <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
                 Unirse a partida on-site
@@ -545,12 +623,13 @@ export const Bowl = () => {
                 <Input
                   value={joinAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
+                  disabled={!!stakeEth}
                   placeholder={stakeEth || "0.0"}
                   className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
                 />
                 {stakeEth && (
                   <p className="text-xs text-text-tertiary">
-                    Stake requerido: {stakeEth} ETH
+                    Stake requerido: {stakeEth} ETH (debe igualarse)
                   </p>
                 )}
               </div>
@@ -583,6 +662,7 @@ export const Bowl = () => {
           )}
 
           {/* [Agent-Generated] Transaction inputs and contract controls. */}
+          {flowMode === "create" && (
           <div className="mt-2 space-y-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
@@ -735,6 +815,7 @@ export const Bowl = () => {
               )}
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>
