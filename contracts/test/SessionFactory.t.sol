@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {SessionFactory} from "../src/SessionFactory.sol";
 import {GameSession} from "../src/GameSession.sol";
+import {GameSessionPressencial} from "../src/GameSessionPressencial.sol";
 
 contract SessionFactoryTest is Test {
     SessionFactory private factory;
@@ -27,22 +28,15 @@ contract SessionFactoryTest is Test {
         address sessionAddr = factory.createSession(MIN_BET, MAX_PLAYERS, DURATION, GameSession.GameType.CoinFlip);
         GameSession session = GameSession(sessionAddr);
 
-        address creator;
-        uint256 minBet;
-        uint8 maxPlayers;
-        uint256 duration;
-        GameSession.GameType gameType;
-        SessionFactory.SessionState state;
-        uint64 createdAt;
-
-        (creator, minBet, maxPlayers, duration, gameType, state, createdAt) = factory.sessionInfo(sessionAddr);
-        assertEq(creator, address(this));
-        assertEq(minBet, MIN_BET);
-        assertEq(maxPlayers, MAX_PLAYERS);
-        assertEq(duration, DURATION);
-        assertEq(uint8(gameType), uint8(GameSession.GameType.CoinFlip));
-        assertEq(uint8(state), uint8(SessionFactory.SessionState.Active));
-        assertEq(createdAt > 0, true);
+        SessionFactory.SessionInfo memory info = _getInfo(sessionAddr);
+        assertEq(info.creator, address(this));
+        assertEq(info.stake, MIN_BET);
+        assertEq(info.maxPlayers, MAX_PLAYERS);
+        assertEq(info.duration, DURATION);
+        assertEq(info.gameType, uint8(GameSession.GameType.CoinFlip));
+        assertEq(uint8(info.kind), uint8(SessionFactory.SessionKind.OnChain));
+        assertEq(uint8(info.state), uint8(SessionFactory.SessionState.Active));
+        assertEq(info.createdAt > 0, true);
 
         assertEq(uint8(session.sessionState()), uint8(GameSession.SessionState.Active));
         assertEq(uint8(session.gameType()), uint8(GameSession.GameType.CoinFlip));
@@ -177,18 +171,122 @@ contract SessionFactoryTest is Test {
         address[] memory all = factory.getAllSessions();
         assertEq(all.length, 0);
 
-        (address creator, uint256 minBet, uint8 maxPlayers, uint256 duration, GameSession.GameType gameType, SessionFactory.SessionState state, uint64 createdAt) =
-            factory.sessionInfo(sessionAddr);
-        assertEq(creator, address(0));
-        assertEq(minBet, 0);
-        assertEq(maxPlayers, 0);
-        assertEq(duration, 0);
-        assertEq(uint8(gameType), 0);
-        assertEq(uint8(state), 0);
-        assertEq(createdAt, 0);
+        SessionFactory.SessionInfo memory removedInfo = _getInfo(sessionAddr);
+        assertEq(removedInfo.creator, address(0));
+        assertEq(removedInfo.stake, 0);
+        assertEq(removedInfo.maxPlayers, 0);
+        assertEq(removedInfo.duration, 0);
+        assertEq(removedInfo.gameType, 0);
+        assertEq(uint8(removedInfo.kind), 0);
+        assertEq(uint8(removedInfo.state), 0);
+        assertEq(removedInfo.createdAt, 0);
+    }
+
+    function testPressencialCreateJoinFinalize() external {
+        address arbiter = address(0xBEEF);
+        address team = address(0xFEE0);
+        vm.deal(arbiter, 1 ether);
+        vm.deal(team, 1 ether);
+
+        factory.setTeamWallet(team);
+
+        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+            MIN_BET,
+            arbiter,
+            GameSessionPressencial.GameType.Chess
+        );
+        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+
+        SessionFactory.SessionInfo memory pressencialInfo = _getInfo(sessionAddr);
+        assertEq(pressencialInfo.creator, address(this));
+        assertEq(pressencialInfo.stake, MIN_BET);
+        assertEq(pressencialInfo.maxPlayers, 2);
+        assertEq(pressencialInfo.duration, 0);
+        assertEq(pressencialInfo.gameType, uint8(GameSessionPressencial.GameType.Chess));
+        assertEq(uint8(pressencialInfo.kind), uint8(SessionFactory.SessionKind.Pressencial));
+        assertEq(uint8(pressencialInfo.state), uint8(SessionFactory.SessionState.Active));
+        assertEq(pressencialInfo.createdAt > 0, true);
+
+        uint256 aliceStart = alice.balance;
+
+        vm.prank(alice);
+        session.joinSession{value: MIN_BET}();
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(arbiter);
+        factory.finalizeSession(sessionAddr, alice);
+
+        assertEq(uint8(session.sessionState()), uint8(GameSessionPressencial.SessionState.Finalized));
+        assertEq(session.winner(), alice);
+
+        uint256 fee = (2 ether * session.FEE_BPS()) / session.BPS_DENOMINATOR();
+        uint256 payout = 2 ether - fee;
+
+        assertEq(alice.balance, aliceStart - MIN_BET + payout);
+    }
+
+    function testPressencialFinalizeRequiresArbiter() external {
+        address arbiter = address(0xBEEF1);
+        vm.deal(arbiter, 1 ether);
+
+        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+            MIN_BET,
+            arbiter,
+            GameSessionPressencial.GameType.Checkers
+        );
+        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+
+        vm.prank(alice);
+        session.joinSession{value: MIN_BET}();
+
+        vm.prank(bob);
+        vm.expectRevert(SessionFactory.NotArbiter.selector);
+        factory.finalizeSession(sessionAddr, alice);
+    }
+
+    function testPressencialFeeForwardedToTeamWallet() external {
+        address arbiter = address(0xBEEF2);
+        address team = address(0xFEE1);
+        vm.deal(arbiter, 1 ether);
+        vm.deal(team, 1 ether);
+
+        factory.setTeamWallet(team);
+
+        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+            MIN_BET,
+            arbiter,
+            GameSessionPressencial.GameType.Chess
+        );
+        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+
+        vm.prank(alice);
+        session.joinSession{value: MIN_BET}();
+
+        uint256 teamStart = team.balance;
+
+        vm.prank(arbiter);
+        factory.finalizeSession(sessionAddr, alice);
+
+        uint256 fee = (2 ether * session.FEE_BPS()) / session.BPS_DENOMINATOR();
+        assertEq(team.balance, teamStart + fee);
+        assertEq(factory.totalFees(), 0);
     }
 
     function _commit(uint8 choice, bytes32 nonce, address player, address session) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(choice, nonce, player, session));
+    }
+
+    function _getInfo(address sessionAddr) private view returns (SessionFactory.SessionInfo memory info) {
+        (
+            info.creator,
+            info.stake,
+            info.maxPlayers,
+            info.duration,
+            info.gameType,
+            info.kind,
+            info.state,
+            info.createdAt
+        ) = factory.sessionInfo(sessionAddr);
     }
 }
