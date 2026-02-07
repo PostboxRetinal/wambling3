@@ -68,6 +68,8 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     error SessionStillActive();
     error InvalidSessionKind();
     error NotArbiter();
+    // [Agent-Generated] Clearer error when the game session is not resolved yet.
+    error GameSessionNotResolved();
 
     constructor() Ownable(msg.sender) {
         implementation = address(new GameSession());
@@ -105,6 +107,19 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         if (info.state == SessionState.None) revert UnknownSession();
         if (info.state != SessionState.Active) revert SessionNotActive();
         if (info.kind != SessionKind.OnChain) revert InvalidSessionKind();
+
+        // [Agent-Generated] Avoid early revert from GameSession by checking its state and timeout.
+        GameSession.SessionState gsState = GameSession(session).sessionState();
+        if (gsState == GameSession.SessionState.Active) {
+            uint256 deadline = GameSession(session).createdAt() + GameSession(session).duration();
+            if (block.timestamp >= deadline) {
+                GameSession(session).claimTimeoutResolution();
+            } else {
+                revert GameSessionNotResolved();
+            }
+        } else if (gsState != GameSession.SessionState.Resolved) {
+            revert GameSessionNotResolved();
+        }
 
         GameSession.Resolution resolution = GameSession(session).finalizeFromFactory();
 
