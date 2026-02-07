@@ -31,6 +31,20 @@ export default function ProtectedLayout({
                 </p>
               </div>
             </Link>
+            <div className="hidden md:flex items-end gap-6 ml-auto mr-6">
+              <Link
+                className="text-sm text-text-primary hover:text-primary transition-colors"
+                href="/home"
+              >
+                Inicio
+              </Link>
+              <Link
+                className="text-sm text-text-primary hover:text-primary transition-colors"
+                href="/home/ens"
+              >
+                ENS
+              </Link>
+            </div>
             <div className="flex items-center gap-4">
               <div className="hidden md:block text-right">
                 <p className="text-xs text-text-tertiary">Usuario</p>

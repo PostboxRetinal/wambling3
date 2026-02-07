@@ -5,7 +5,6 @@ import { useRegisterENS } from "@/hooks/web3/useRegisterENS";
 import { Button, Card, CardContent, CardHeader, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { Loader2, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 
-// [Agent-Generated] Duration options (in seconds).
 const DURATION_OPTIONS = [
   { label: "1 year", value: 31536000 },
   { label: "2 years", value: 63072000 },
@@ -30,7 +29,6 @@ export const RegisterENS = () => {
   const [estimatedPrice, setEstimatedPrice] = useState<string | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
-  // [Agent-Generated] Handle label change with state reset.
   const handleLabelChange = (value: string) => {
     const newLabel = value.toLowerCase();
     setLabel(newLabel);
@@ -41,7 +39,6 @@ export const RegisterENS = () => {
     }
   };
 
-  // [Agent-Generated] Check availability when label changes with debounce.
   useEffect(() => {
     if (label.length >= 3) {
       const timer = setTimeout(async () => {
@@ -66,24 +63,20 @@ export const RegisterENS = () => {
     }
   }, [label, duration, checkAvailability, getPrice]);
 
-  // [Agent-Generated] Handle commit step.
   const handleCommit = async () => {
     if (!label || !isAvailable) return;
     await commitRegistration(label, duration);
   };
 
-  // [Agent-Generated] Handle register step.
   const handleRegister = async () => {
     await completeRegistration();
   };
 
-  // [Agent-Generated] Handle reverse record (optional).
   const handleSetReverse = async () => {
     if (!state.label) return;
     await setReverseRecord(`${state.label}.eth`);
   };
 
-  // [Agent-Generated] Handle new registration.
   const handleNewRegistration = () => {
     reset();
     setLabel("");
@@ -96,12 +89,11 @@ export const RegisterENS = () => {
       <CardHeader>
         <h3 className="text-2xl font-bold text-text-primary">Register ENS Name</h3>
         <p className="text-sm text-text-tertiary">
-          Get your .eth identity (commit-reveal required)
+          Get your .eth identity
         </p>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* [Agent-Generated] Registration completed state */}
         {state.status === "completed" && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
@@ -136,7 +128,6 @@ export const RegisterENS = () => {
           </div>
         )}
 
-        {/* [Agent-Generated] Registration form */}
         {state.status !== "completed" && (
           <>
             {/* Label input */}
@@ -293,14 +284,6 @@ export const RegisterENS = () => {
             )}
           </>
         )}
-
-        {/* Info footer */}
-        <div className="pt-4 border-t border-border-primary/30">
-          <p className="text-xs text-text-tertiary">
-            ℹ️ ENS registration requires 2 transactions: commit (prevents front-running)
-            + register (mints your .eth NFT). 60s wait required between steps.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );
