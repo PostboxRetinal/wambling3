@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {SessionFactory} from "../src/SessionFactory.sol";
 import {GameSession} from "../src/GameSession.sol";
-import {GameSessionPressencial} from "../src/GameSessionPressencial.sol";
+import {GameSessionOnSite} from "../src/GameSessionOnSite.sol";
 
 contract SessionFactoryTest is Test {
     SessionFactory private factory;
@@ -182,7 +182,7 @@ contract SessionFactoryTest is Test {
         assertEq(removedInfo.createdAt, 0);
     }
 
-    function testPressencialCreateJoinFinalize() external {
+    function testOnSiteCreateJoinFinalize() external {
         address arbiter = address(0xBEEF);
         address team = address(0xFEE0);
         vm.deal(arbiter, 1 ether);
@@ -190,22 +190,22 @@ contract SessionFactoryTest is Test {
 
         factory.setTeamWallet(team);
 
-        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+        address sessionAddr = factory.createOnSiteSession{value: MIN_BET}(
             MIN_BET,
             arbiter,
-            GameSessionPressencial.GameType.Chess
+            GameSessionOnSite.GameType.Chess
         );
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
-        SessionFactory.SessionInfo memory pressencialInfo = _getInfo(sessionAddr);
-        assertEq(pressencialInfo.creator, address(this));
-        assertEq(pressencialInfo.stake, MIN_BET);
-        assertEq(pressencialInfo.maxPlayers, 2);
-        assertEq(pressencialInfo.duration, 0);
-        assertEq(pressencialInfo.gameType, uint8(GameSessionPressencial.GameType.Chess));
-        assertEq(uint8(pressencialInfo.kind), uint8(SessionFactory.SessionKind.Pressencial));
-        assertEq(uint8(pressencialInfo.state), uint8(SessionFactory.SessionState.Active));
-        assertEq(pressencialInfo.createdAt > 0, true);
+        SessionFactory.SessionInfo memory onSiteInfo = _getInfo(sessionAddr);
+        assertEq(onSiteInfo.creator, address(this));
+        assertEq(onSiteInfo.stake, MIN_BET);
+        assertEq(onSiteInfo.maxPlayers, 2);
+        assertEq(onSiteInfo.duration, 0);
+        assertEq(onSiteInfo.gameType, uint8(GameSessionOnSite.GameType.Chess));
+        assertEq(uint8(onSiteInfo.kind), uint8(SessionFactory.SessionKind.OnSite));
+        assertEq(uint8(onSiteInfo.state), uint8(SessionFactory.SessionState.Active));
+        assertEq(onSiteInfo.createdAt > 0, true);
 
         uint256 aliceStart = alice.balance;
 
@@ -217,7 +217,7 @@ contract SessionFactoryTest is Test {
         vm.prank(arbiter);
         factory.finalizeSession(sessionAddr, alice);
 
-        assertEq(uint8(session.sessionState()), uint8(GameSessionPressencial.SessionState.Finalized));
+        assertEq(uint8(session.sessionState()), uint8(GameSessionOnSite.SessionState.Finalized));
         assertEq(session.winner(), alice);
 
         uint256 fee = (2 ether * session.FEE_BPS()) / session.BPS_DENOMINATOR();
@@ -226,16 +226,16 @@ contract SessionFactoryTest is Test {
         assertEq(alice.balance, aliceStart - MIN_BET + payout);
     }
 
-    function testPressencialFinalizeRequiresArbiter() external {
+    function testOnSiteFinalizeRequiresArbiter() external {
         address arbiter = address(0xBEEF1);
         vm.deal(arbiter, 1 ether);
 
-        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+        address sessionAddr = factory.createOnSiteSession{value: MIN_BET}(
             MIN_BET,
             arbiter,
-            GameSessionPressencial.GameType.Checkers
+            GameSessionOnSite.GameType.Checkers
         );
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         vm.prank(alice);
         session.joinSession{value: MIN_BET}();
@@ -245,7 +245,7 @@ contract SessionFactoryTest is Test {
         factory.finalizeSession(sessionAddr, alice);
     }
 
-    function testPressencialFeeForwardedToTeamWallet() external {
+    function testOnSiteFeeForwardedToTeamWallet() external {
         address arbiter = address(0xBEEF2);
         address team = address(0xFEE1);
         vm.deal(arbiter, 1 ether);
@@ -253,12 +253,12 @@ contract SessionFactoryTest is Test {
 
         factory.setTeamWallet(team);
 
-        address sessionAddr = factory.createPressencialSession{value: MIN_BET}(
+        address sessionAddr = factory.createOnSiteSession{value: MIN_BET}(
             MIN_BET,
             arbiter,
-            GameSessionPressencial.GameType.Chess
+            GameSessionOnSite.GameType.Chess
         );
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         vm.prank(alice);
         session.joinSession{value: MIN_BET}();

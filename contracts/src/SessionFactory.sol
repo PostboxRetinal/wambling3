@@ -6,7 +6,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {GameSession} from "./GameSession.sol";
-import {GameSessionPressencial} from "./GameSessionPressencial.sol";
+import {GameSessionOnSite} from "./GameSessionOnSite.sol";
 
 /// @title SessionFactory
 /// @notice Permanent entry point that deploys minimal proxy sessions and collects fees.
@@ -22,7 +22,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
 
     enum SessionKind {
         OnChain,
-        Pressencial
+        OnSite
     }
 
     struct SessionInfo {
@@ -37,7 +37,8 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     }
 
     address public immutable implementation;
-    address public immutable pressencialImplementation;
+    // [Agent-Generated] On-site session implementation
+    address public immutable onSiteImplementation;
     address public teamWallet;
     uint256 public totalFees;
 
@@ -70,7 +71,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
 
     constructor() Ownable(msg.sender) {
         implementation = address(new GameSession());
-        pressencialImplementation = address(new GameSessionPressencial());
+        onSiteImplementation = address(new GameSessionOnSite());
         teamWallet = msg.sender;
     }
 
@@ -85,17 +86,17 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     }
 
     /// @notice Deploy a new in-person session as a minimal proxy clone.
-    function createPressencialSession(
+    function createOnSiteSession(
         uint256 stake,
         address arbiter,
-        GameSessionPressencial.GameType gameType
+        GameSessionOnSite.GameType gameType
     ) external payable returns (address session) {
         if (stake == 0 || msg.value != stake || arbiter == address(0)) revert InvalidParams();
 
-        session = pressencialImplementation.clone();
-        GameSessionPressencial(session).initialize{value: msg.value}(address(this), msg.sender, arbiter, stake, gameType);
+        session = onSiteImplementation.clone();
+        GameSessionOnSite(session).initialize{value: msg.value}(address(this), msg.sender, arbiter, stake, gameType);
 
-        _registerSession(session, msg.sender, stake, 2, 0, uint8(gameType), SessionKind.Pressencial);
+        _registerSession(session, msg.sender, stake, 2, 0, uint8(gameType), SessionKind.OnSite);
     }
 
     /// @notice Finalize a session after it has been resolved on-chain.
@@ -121,12 +122,12 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         SessionInfo storage info = sessionInfo[session];
         if (info.state == SessionState.None) revert UnknownSession();
         if (info.state != SessionState.Active) revert SessionNotActive();
-        if (info.kind != SessionKind.Pressencial) revert InvalidSessionKind();
+        if (info.kind != SessionKind.OnSite) revert InvalidSessionKind();
 
-        address arbiter = GameSessionPressencial(session).arbiter();
+        address arbiter = GameSessionOnSite(session).arbiter();
         if (msg.sender != arbiter) revert NotArbiter();
 
-        GameSessionPressencial(session).finalizeFromFactory(winner);
+        GameSessionOnSite(session).finalizeFromFactory(winner);
 
         info.state = SessionState.Finalized;
         emit SessionFinalized(session, info.state, GameSession.Resolution.Winner);
@@ -191,7 +192,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         emit FeesWithdrawn(to, amount);
     }
 
-    /// @notice Update the designated team wallet for pressencial fee forwarding.
+    /// @notice Update the designated team wallet for on-site fee forwarding.
     function setTeamWallet(address wallet) external onlyOwner {
         if (wallet == address(0)) revert InvalidParams();
         teamWallet = wallet;
@@ -232,7 +233,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         if (amount == 0) return;
 
         SessionInfo storage info = sessionInfo[from];
-        if (info.state != SessionState.None && info.kind == SessionKind.Pressencial) {
+        if (info.state != SessionState.None && info.kind == SessionKind.OnSite) {
             _forwardFee(amount);
             emit FeeForwarded(from, teamWallet, amount);
             return;

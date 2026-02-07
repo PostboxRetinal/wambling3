@@ -5,8 +5,21 @@ import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { useBowl } from "@/hooks/web3/useBowl";
 import { useWalletBalance } from "@/hooks/web3/useWallet";
+import { useSearchParams } from "next/navigation";
+
+// [Agent-Generated] Map UI selection to contract game types.
+const GAME_LABELS: Record<string, string> = {
+  coinflip: "Coin Flip",
+  rps: "Rock • Paper • Scissors",
+  chess: "Chess",
+  checkers: "Checkers",
+};
 
 export const Bowl = () => {
+  const searchParams = useSearchParams();
+  const selectedGame = searchParams.get("game") ?? "coinflip";
+  const selectedMode = searchParams.get("mode") ?? "onchain";
+  const selectedGameLabel = GAME_LABELS[selectedGame] ?? "Coin Flip";
   const {
     betAmount,
     setBetAmount,
@@ -38,7 +51,10 @@ export const Bowl = () => {
     handleBet();
   };
 
-  const jugadores = ["Jugador 1", "Jugador 2", "Jugador 3", "Jugador 4"];
+  const jugadores =
+    selectedMode === "onchain"
+      ? ["Jugador 1", "Jugador 2"]
+      : ["Jugador 1", "Jugador 2", "Jugador 3", "Jugador 4"];
 
   return (
     <div className="space-y-4">
@@ -48,7 +64,9 @@ export const Bowl = () => {
           <h3 className="text-2xl font-bold text-text-primary relative z-10">
             Bowl
           </h3>
-          <p className="text-sm text-text-secondary">Coloca tu apuesta</p>
+          <p className="text-sm text-text-secondary">
+            {selectedGameLabel} · {selectedMode === "onchain" ? "On-chain" : "On-site"}
+          </p>
         </CardHeader>
         <CardContent className="relative">
           {coins.map((coin) => (

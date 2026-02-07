@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @title GameSessionPressencial
-/// @notice Escrow for in-person board game wagers with an arbiter-selected winner.
+/// @title GameSessionOnSite
+/// @notice Escrow for on-site board game wagers with an arbiter-selected winner.
 /// @dev Intended for ERC-1167 clones and initialized by a factory.
-contract GameSessionPressencial is ReentrancyGuard {
+contract GameSessionOnSite is ReentrancyGuard {
     enum SessionState {
         Uninitialized,
         Created,

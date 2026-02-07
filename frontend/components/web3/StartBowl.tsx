@@ -1,14 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui";
 import { DiceIcon } from "@/components/common/DiceIcon";
 import { useRouter } from "next/navigation";
+import {
+  GameSelectorModal,
+  type GameSelection,
+} from "@/components/web3/GameSelectorModal";
 
 export const StartBowl = () => {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavigateToBowl = () => {
-    router.push("/home/bowl");
+  const handleNavigateToBowl = ({ id, mode }: GameSelection) => {
+    router.push(`/home/bowl?game=${id}&mode=${mode}`);
+    setIsOpen(false);
   };
 
   return (
@@ -18,9 +25,9 @@ export const StartBowl = () => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-4">
-          <div 
-            onClick={handleNavigateToBowl}
-            className="group relative overflow-hidden rounded-xl border border-border-primary bg-gradient-to-br from-bg-tertiary to-bg-secondary p-6 hover:border-primary/50 hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          <div
+            onClick={() => setIsOpen(true)}
+            className="group relative overflow-hidden rounded-xl border border-border-primary bg-linear-to-br from-bg-tertiary to-bg-secondary p-6 hover:border-primary/50 hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
           >
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
@@ -37,6 +44,13 @@ export const StartBowl = () => {
             </div>
           </div>
         </div>
+
+        {/* [Agent-Generated] Game type selection modal */}
+        <GameSelectorModal
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          onSelect={handleNavigateToBowl}
+        />
       </CardContent>
     </Card>
   );

@@ -48,6 +48,20 @@ export function LoginForm() {
     }
   }, [code]);
 
+  const handleEmailKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    if (!email || isLoading) return;
+    event.preventDefault();
+    handleSendCode();
+  };
+
+  const handleCodeKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    if (code.length !== 6 || isLoading) return;
+    event.preventDefault();
+    handleLogin();
+  };
+
   return (
     <Card className="w-full max-w-md border-border-primary bg-bg-secondary shadow-2xl">
       <CardHeader className="text-center">
@@ -75,6 +89,7 @@ export function LoginForm() {
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.currentTarget.value)}
+              onKeyDown={handleEmailKeyDown}
               disabled={isLoading}
               required
               className="h-11 border-border-primary bg-bg-tertiary text-text-primary placeholder:text-text-tertiary"
@@ -93,6 +108,7 @@ export function LoginForm() {
                 maxLength={6}
                 value={code}
                 onChange={setCode}
+                onKeyDown={handleCodeKeyDown}
                 disabled={isLoading}
                 containerClassName="gap-3"
               >

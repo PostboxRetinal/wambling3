@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 
 import {SessionFactory} from "../src/SessionFactory.sol";
-import {GameSessionPressencial} from "../src/GameSessionPressencial.sol";
+import {GameSessionOnSite} from "../src/GameSessionOnSite.sol";
 
-contract GameSessionPressencialTest is Test {
+contract GameSessionOnSiteTest is Test {
     SessionFactory private factory;
 
     address private opponent = address(0xB0B);
@@ -25,50 +25,50 @@ contract GameSessionPressencialTest is Test {
 
     function testInitializeOnlyOnce() external {
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
-        vm.expectRevert(GameSessionPressencial.AlreadyInitialized.selector);
-        session.initialize{value: STAKE}(address(factory), address(this), arbiter, STAKE, GameSessionPressencial.GameType.Chess);
+        vm.expectRevert(GameSessionOnSite.AlreadyInitialized.selector);
+        session.initialize{value: STAKE}(address(factory), address(this), arbiter, STAKE, GameSessionOnSite.GameType.Chess);
     }
 
     function testJoinRejectsCreator() external {
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
-        vm.expectRevert(GameSessionPressencial.SameAsCreator.selector);
+        vm.expectRevert(GameSessionOnSite.SameAsCreator.selector);
         session.joinSession{value: STAKE}();
     }
 
     function testJoinRequiresExactStake() external {
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         vm.prank(opponent);
-        vm.expectRevert(GameSessionPressencial.StakeMismatch.selector);
+        vm.expectRevert(GameSessionOnSite.StakeMismatch.selector);
         session.joinSession{value: STAKE - 1}();
     }
 
     function testFinalizeOnlyFactory() external {
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         vm.prank(opponent);
         session.joinSession{value: STAKE}();
 
         vm.prank(arbiter);
-        vm.expectRevert(GameSessionPressencial.NotFactory.selector);
+        vm.expectRevert(GameSessionOnSite.NotFactory.selector);
         session.finalizeFromFactory(arbiter);
     }
 
     function testFinalizeRejectsInvalidWinner() external {
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         vm.prank(opponent);
         session.joinSession{value: STAKE}();
 
         vm.prank(address(factory));
-        vm.expectRevert(GameSessionPressencial.InvalidWinner.selector);
+        vm.expectRevert(GameSessionOnSite.InvalidWinner.selector);
         session.finalizeFromFactory(address(0xDEAD));
     }
 
@@ -76,7 +76,7 @@ contract GameSessionPressencialTest is Test {
         factory.setTeamWallet(teamWallet);
 
         address sessionAddr = _createSession();
-        GameSessionPressencial session = GameSessionPressencial(sessionAddr);
+        GameSessionOnSite session = GameSessionOnSite(sessionAddr);
 
         uint256 opponentStart = opponent.balance;
         uint256 teamStart = teamWallet.balance;
@@ -92,7 +92,7 @@ contract GameSessionPressencialTest is Test {
         uint256 fee = (2 ether * session.FEE_BPS()) / session.BPS_DENOMINATOR();
         uint256 payout = 2 ether - fee;
 
-        assertEq(uint8(session.sessionState()), uint8(GameSessionPressencial.SessionState.Finalized));
+        assertEq(uint8(session.sessionState()), uint8(GameSessionOnSite.SessionState.Finalized));
         assertEq(session.winner(), opponent);
         assertEq(session.durationSeconds(), 12);
         assertEq(opponent.balance, opponentStart - STAKE + payout);
@@ -101,6 +101,6 @@ contract GameSessionPressencialTest is Test {
     }
 
     function _createSession() private returns (address) {
-        return factory.createPressencialSession{value: STAKE}(STAKE, arbiter, GameSessionPressencial.GameType.Chess);
+        return factory.createOnSiteSession{value: STAKE}(STAKE, arbiter, GameSessionOnSite.GameType.Chess);
     }
 }
