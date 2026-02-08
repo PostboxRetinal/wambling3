@@ -110,12 +110,21 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
 
     try {
       // [Agent-Generated] Read off-chain session data for lobby UI.
+      type SessionInfo = {
+        creator?: `0x${string}`;
+        opponent?: `0x${string}`;
+        winner?: `0x${string}`;
+        stake?: bigint;
+        state?: number;
+        [index: number]: unknown;
+      };
+      
       const info = await publicClient.readContract({
         address: assertSessionFactoryAddress(),
         abi: SESSION_FACTORY_ABI,
         functionName: "sessionInfo",
         args: [uuidToBytes16(sessionId)],
-      }) as any;
+      }) as SessionInfo;
 
       const creator = info.creator ?? info[0];
       const opponent = info.opponent ?? info[1];
