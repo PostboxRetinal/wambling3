@@ -242,25 +242,25 @@ export const Bowl = () => {
     switch (move) {
       case "rock":
         return (
-          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-xl border-2 border-gray-400">
+          <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-xl border-2 border-gray-400">
             <span className="text-3xl">🪨</span>
           </div>
         );
       case "paper":
         return (
-          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-xl border-2 border-blue-300">
+          <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-xl border-2 border-blue-300">
             <span className="text-3xl">📄</span>
           </div>
         );
       case "scissors":
         return (
-          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-xl border-2 border-red-400">
+          <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-red-500 to-red-700 flex items-center justify-center shadow-xl border-2 border-red-400">
             <span className="text-3xl">✂️</span>
           </div>
         );
       default:
         return (
-          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-xl border-2 border-gray-300">
+          <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-xl border-2 border-gray-300">
             <span className="text-3xl">❓</span>
           </div>
         );
@@ -669,9 +669,9 @@ export const Bowl = () => {
               <Button
                 variant="outline"
                 onClick={() => setLocalMove("rock")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-gradient-to-br hover:from-gray-600 hover:to-gray-800 hover:border-gray-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
+                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-gray-600 hover:to-gray-800 hover:border-gray-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
               >
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-lg border-2 border-gray-400">
+                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-lg border-2 border-gray-400">
                   <span className="text-2xl">🪨</span>
                 </div>
                 <span className="text-sm font-semibold">Piedra</span>
@@ -679,9 +679,9 @@ export const Bowl = () => {
               <Button
                 variant="outline"
                 onClick={() => setLocalMove("paper")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-gradient-to-br hover:from-blue-400 hover:to-blue-600 hover:border-blue-300 transition-all flex flex-col items-center justify-center gap-2 py-4"
+                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-blue-400 hover:to-blue-600 hover:border-blue-300 transition-all flex flex-col items-center justify-center gap-2 py-4"
               >
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg border-2 border-blue-300">
+                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg border-2 border-blue-300">
                   <span className="text-2xl">📄</span>
                 </div>
                 <span className="text-sm font-semibold">Papel</span>
@@ -689,9 +689,9 @@ export const Bowl = () => {
               <Button
                 variant="outline"
                 onClick={() => setLocalMove("scissors")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-gradient-to-br hover:from-red-500 hover:to-red-700 hover:border-red-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
+                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-red-500 hover:to-red-700 hover:border-red-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
               >
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg border-2 border-red-400">
+                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg border-2 border-red-400">
                   <span className="text-2xl">✂️</span>
                 </div>
                 <span className="text-sm font-semibold">Tijera</span>

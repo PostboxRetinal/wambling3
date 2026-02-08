@@ -5,13 +5,9 @@ import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
 import { createPublicClient, http, formatEther, parseEther } from "viem";
 import { toast } from "sonner";
 import {
-  mainnet,
   sepolia,
   base,
   baseSepolia,
-  optimism,
-  arbitrum,
-  polygon,
 } from "viem/chains";
 import type {
   SendTransactionParams,

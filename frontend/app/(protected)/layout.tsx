@@ -38,7 +38,7 @@ export default function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <header className="border-b border-primary/20 bg-gradient-to-r from-bg-secondary/90 via-bg-tertiary/90 to-bg-secondary/90 backdrop-blur-xl shadow-lg shadow-primary/5 sticky top-0 z-50">
+      <header className="border-b border-primary/20 bg-linear-to-r from-bg-secondary/90 via-bg-tertiary/90 to-bg-secondary/90 backdrop-blur-xl shadow-lg shadow-primary/5 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link className="flex items-center gap-3 group" href="/home">
@@ -47,7 +47,7 @@ export default function ProtectedLayout({
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div>
-                <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-primary-dark to-primary bg-clip-text text-transparent">
+                <h1 className="text-2xl font-black bg-linear-to-r from-primary via-primary-dark to-primary bg-clip-text text-transparent">
                   Wambling3
                 </h1>
                 <p className="text-xs text-text-tertiary font-medium">
