@@ -1,0 +1,57 @@
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui";
+import { DiceIcon } from "@/components/common/DiceIcon";
+import { useRouter } from "next/navigation";
+import {
+  GameSelectorModal,
+} from "@/components/web3/GameSelectorModal";
+import type { GameSelection } from "@/types/game.types";
+
+export const StartBowl = () => {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleNavigateToBowl = ({ id }: GameSelection) => {
+    router.push(`/home/bowl?game=${id}`);
+    setIsOpen(false);
+  };
+
+  return (
+    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm h-67.5 flex flex-col">
+      <CardHeader>
+        <h3 className="text-2xl font-bold text-text-primary">Bowl</h3>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <div className="grid grid-cols-1 gap-4">
+          <div
+            onClick={() => setIsOpen(true)}
+            className="group relative overflow-hidden rounded-xl border border-border-primary bg-linear-to-br from-bg-tertiary to-bg-secondary p-6 hover:border-primary/50 hover:scale-[1.02] transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          >
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative z-10">
+              <DiceIcon className="w-12 h-12 text-primary mb-4 group-hover:rotate-12 transition-transform" />
+              <h4 className="text-xl font-bold text-text-primary mb-2">
+                Start a Game
+              </h4>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-tertiary">
+                  Place your bet and win!
+                </span>
+                <span className="text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* [Agent-Generated] Game type selection modal */}
+        <GameSelectorModal
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          onSelect={handleNavigateToBowl}
+        />
+      </CardContent>
+    </Card>
+  );
+};
