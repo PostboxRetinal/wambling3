@@ -15,8 +15,8 @@ export function LogoutButton() {
       toast.success("Sesión cerrada", {
         description: "Hasta pronto",
       });
-      router.push("/login");
-      router.refresh();
+      router.replace("/login");
+      window.location.assign("/login");
     } catch (error) {
       toast.error("Error al cerrar sesión", {
         description:

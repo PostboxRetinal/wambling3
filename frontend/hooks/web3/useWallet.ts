@@ -139,11 +139,7 @@ export const useWalletBalance = ({
 };
 
 export const AVAILABLE_CHAINS = [
-  { chain: mainnet, label: "Ethereum" },
-  { chain: sepolia, label: "Ethereum Sepolia" },
-  { chain: base, label: "Base" },
-  { chain: baseSepolia, label: "Base Sepolia" },
-  { chain: optimism, label: "Optimism" },
-  { chain: arbitrum, label: "Arbitrum One" },
-  { chain: polygon, label: "Polygon" },
+  { chain: sepolia, label: "Ethereum Sepolia (testnet)" },
+  { chain: baseSepolia, label: "Base Sepolia (testnet)" },
+  { chain: base, label: "Base (mainnet)" },
 ] as const;

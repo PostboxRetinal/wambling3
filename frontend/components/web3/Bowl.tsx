@@ -55,6 +55,7 @@ export const Bowl = () => {
   );
   const [ownerAddress, setOwnerAddress] = useState<string | null>(null);
   const [isOwnerLoading, setIsOwnerLoading] = useState(false);
+  const [showAdminTools, setShowAdminTools] = useState(false);
 
   const {
     snapshot,
@@ -541,7 +542,7 @@ export const Bowl = () => {
           </div>
 
           {/* [Agent-Generated] Admin: set RPS implementation on SessionFactory. */}
-          {isOwner && (
+          {(isOwner || showAdminTools) && (
             <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -632,13 +633,32 @@ export const Bowl = () => {
             </div>
           </div>
 
-          {/* [Agent-Generated] Result and round info. */}
-          <div className="mt-6 text-center space-y-2">
-            <p className="text-3xl font-bold text-text-primary">{resultText}</p>
-            <p className="text-sm text-text-secondary">
-              Ronda {roundInfo.current} de {roundInfo.total}
-            </p>
-          </div>
+          {!isOwnerLoading && !isOwner && (
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="text-xs text-text-tertiary space-y-1">
+                <p>Admin disponible solo para el owner del SessionFactory.</p>
+                {ownerAddress && (
+                  <p className="break-all">
+                    Owner: {ownerAddress}
+                  </p>
+                )}
+                {currentAddress && (
+                  <p className="break-all">
+                    Wallet actual: {currentAddress}
+                  </p>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdminTools((prev) => !prev)}
+                className="border-border-primary"
+              >
+                {showAdminTools ? "Ocultar admin" : "Mostrar admin"}
+              </Button>
+            </div>
+          )}
 
           {/* [Agent-Generated] RPS action buttons. */}
           <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4">

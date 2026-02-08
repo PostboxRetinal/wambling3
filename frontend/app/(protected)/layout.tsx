@@ -18,7 +18,8 @@ export default function ProtectedLayout({
   const { ready, user } = usePrivy();
   const router = useRouter();
   const walletAddress = user?.wallet?.address ?? null;
-  const { ensName } = useEnsName(walletAddress);
+  const { ensName, isLoading: isEnsLoading } = useEnsName(walletAddress);
+  const hasEnsName = !!ensName;
 
   const formatAddress = (addr?: string | null) => {
     if (!addr) return "";
@@ -62,21 +63,40 @@ export default function ProtectedLayout({
               >
                 Inicio
               </Link>
-              <Link
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-text-primary hover:text-primary hover:bg-primary/10 transition-all duration-300"
-                href="/home/ens"
-              >
-                ENS
-              </Link>
+              {hasEnsName ? (
+                <span
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-text-tertiary bg-bg-tertiary/40 border border-primary/10 cursor-not-allowed"
+                  aria-disabled="true"
+                  title="Ya tienes un ENS registrado"
+                >
+                  ENS Register (claimed)
+                </span>
+              ) : (
+                <Link
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-text-primary hover:text-primary hover:bg-primary/10 transition-all duration-300"
+                  href="/home/ens"
+                >
+                  ENS Register
+                </Link>
+              )}
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-bg-tertiary/50 border border-primary/20">
+              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-bg-tertiary/50 border border-primary/20">
                 <div className="text-right">
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">Usuario</p>
-                  <p className="text-sm text-primary font-mono font-bold">
-                    {user?.email?.address || ensName || formatAddress(walletAddress)}
+                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">
+                    ENS Registrar
                   </p>
+                  <p className="text-sm text-primary font-mono font-bold">
+                    {isEnsLoading
+                      ? "Resolviendo..."
+                      : ensName || formatAddress(walletAddress) || "Sin wallet"}
+                  </p>
+                  {user?.email?.address && (
+                    <p className="text-[10px] text-text-tertiary font-medium">
+                      {user.email.address}
+                    </p>
+                  )}
                 </div>
               </div>
               <LogoutButton />
