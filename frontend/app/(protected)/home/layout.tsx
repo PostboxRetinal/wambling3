@@ -1,3 +1,5 @@
+"use client";
+
 import { WalletBalance } from "@/components/web3";
 
 export default function HomeLayout({

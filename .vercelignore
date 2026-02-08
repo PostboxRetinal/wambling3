@@ -1,0 +1,9 @@
+# Ignore contracts directory - not needed for frontend deployment
+contracts/
+
+# Ignore git files
+.git/
+.gitmodules
+
+# Ignore GitHub configurations
+.github/

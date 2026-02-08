@@ -115,7 +115,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
         abi: SESSION_FACTORY_ABI,
         functionName: "sessionInfo",
         args: [uuidToBytes16(sessionId)],
-      });
+      }) as any;
 
       const creator = info.creator ?? info[0];
       const opponent = info.opponent ?? info[1];

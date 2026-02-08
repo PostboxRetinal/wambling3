@@ -398,10 +398,10 @@ export const useRpsGame = () => {
           throw new Error("Move must be rock, paper, or scissors.");
         }
         const commitment = keccak256(
-          encodePacked({
-            types: ["uint8", "bytes32"],
-            values: [moveEnum, saltBytes32],
-          }),
+          encodePacked(
+            ["uint8", "bytes32"],
+            [moveEnum, saltBytes32],
+          ),
         );
 
         const { provider, address } = await ensureWalletReady();

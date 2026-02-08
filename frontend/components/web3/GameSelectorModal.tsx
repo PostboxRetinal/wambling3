@@ -9,13 +9,18 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import type { GameSelectorModalProps } from "@/types/ui.types";
+import type { GameId, GameMode } from "@/types/game.types";
 
 // [Agent-Generated] Contract-aligned game options for UI selection.
-const GAME_OPTIONS = [
+const GAME_OPTIONS: Array<{
+  id: GameId;
+  label: string;
+  mode: GameMode;
+}> = [
   {
     id: "rps",
     label: "Rock • Paper • Scissors",
-    mode: "offchain" as const,
+    mode: "offchain",
   },
 ];
 
