@@ -121,8 +121,8 @@ wambling3/
 
 The application is configured for optimal performance:
 - **Turbopack**: Used for faster builds (Next.js 16 default)
-- **Dynamic Rendering**: Protected routes use `force-dynamic` to prevent static generation issues
-- **Client Components**: Auth-dependent components are client-side only
+- **Client Components**: Protected routes use client components (`"use client"`) which are dynamically rendered by default
+- **No Static Generation**: Auth-dependent pages skip static generation automatically
 - **Code Splitting**: Automatic code splitting via Next.js App Router
 
 ## Security Notes
