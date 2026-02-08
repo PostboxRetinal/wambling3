@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 "use client";
 
 // [Agent-Generated] SessionFactory-powered bowl experience.
@@ -13,7 +14,7 @@ import {
 } from "@/lib/contracts/sessionFactory";
 import type { GameId } from "@/types/game.types";
 import { useWalletBalance } from "@/hooks/web3/useWallet";
-import { formatEther } from "viem";
+import { formatEther, isAddress } from "viem";
 import { useSearchParams } from "next/navigation";
 
 export const Bowl = () => {
@@ -31,12 +32,18 @@ export const Bowl = () => {
     handleBet,
     isBetValid,
     txState,
+    createRpsClone,
+    resetTxState,
   } = useBowl({ selectedGame, selectedMode });
 
   // [Agent-Generated] Local session input + player UX state.
   const [flowMode, setFlowMode] = useState<"create" | "join">("create");
   const [sessionIdInput, setSessionIdInput] = useState("");
   const [copiedSession, setCopiedSession] = useState(false);
+  const [refereeTouched, setRefereeTouched] = useState(false);
+  const [refereeAddress, setRefereeAddress] = useState(
+    process.env.NEXT_PUBLIC_RPS_REFEREE_ADDRESS ?? "",
+  );
 
   const {
     snapshot,
@@ -59,8 +66,39 @@ export const Bowl = () => {
   const isOverBalance = !!betAmount && hasBalance && betAmountNum > balanceNum;
   const isSubmitting =
     txState.status === "signing" || txState.status === "pending";
+  const isEscrowSubmitting =
+    txState.action === "create-escrow" && isSubmitting;
+
+  const normalizedReferee = refereeAddress.trim();
+  const isZeroReferee =
+    normalizedReferee.toLowerCase() ===
+    "0x0000000000000000000000000000000000000000";
+  const isRefereeValid =
+    !!normalizedReferee && isAddress(normalizedReferee) && !isZeroReferee;
+  const tablePlayers = useMemo(() => {
+    const players = [currentAddress, snapshot?.creator, snapshot?.opponent]
+      .filter(Boolean)
+      .map((addr) => addr!.toLowerCase());
+    return new Set(players);
+  }, [currentAddress, snapshot?.creator, snapshot?.opponent]);
+  const isRefereeThirdParty =
+    isRefereeValid && !tablePlayers.has(normalizedReferee.toLowerCase());
+  const refereeError = useMemo(() => {
+    if (!refereeTouched) return null;
+    if (!normalizedReferee) return "El escrow es obligatorio.";
+    if (!isRefereeValid) return "Direccion de escrow invalida.";
+    if (!isRefereeThirdParty)
+      return "El escrow no puede ser jugador de la mesa.";
+    return null;
+  }, [isRefereeThirdParty, isRefereeValid, normalizedReferee, refereeTouched]);
+
   const canBet =
-    isBetValid && !isAnimating && !isSubmitting && hasBalance && !isOverBalance;
+    isBetValid &&
+    !isAnimating &&
+    !isSubmitting &&
+    hasBalance &&
+    !isOverBalance &&
+    isRefereeThirdParty;
 
   const formatAddress = (addr?: string | null) => {
     if (!addr) return "";
@@ -81,7 +119,11 @@ export const Bowl = () => {
   const isJoinSubmitting =
     actionState.status === "signing" || actionState.status === "pending";
 
-  const canJoinOnsite = !!sessionIdInput && !!joinAmount && !isJoinSubmitting;
+  const canJoinOnsite =
+    !!sessionIdInput &&
+    !!joinAmount &&
+    !isJoinSubmitting &&
+    isRefereeThirdParty;
 
   const handleMaxBetWithBalance = () => {
     if (!hasBalance) return;
@@ -111,6 +153,12 @@ export const Bowl = () => {
     setSessionIdInput("");
     setFlowMode("create");
     resetActionState();
+  };
+
+  const handleCreateEscrow = async () => {
+    if (!isRefereeThirdParty || isEscrowSubmitting) return;
+    resetTxState();
+    await createRpsClone({ refereeAddress: normalizedReferee });
   };
 
   const playerSlots = useMemo(() => {
@@ -368,6 +416,63 @@ export const Bowl = () => {
               </div>
             </div>
           )}
+
+          {/* [Agent-Generated] Escrow / Referee input for RPS validation. */}
+          <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                  Escrow / Referee (Bankr Bot)
+                </p>
+                <p className="text-xs text-text-secondary">
+                  Debe ser un wallet de tercero, distinto a los jugadores.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCreateEscrow}
+                disabled={!isRefereeThirdParty || isEscrowSubmitting}
+                className="border-border-primary"
+              >
+                {isEscrowSubmitting ? "Creando..." : "Crear Escrow"}
+              </Button>
+            </div>
+            <Input
+              value={refereeAddress}
+              onChange={(e) => {
+                setRefereeAddress(e.target.value);
+                setRefereeTouched(true);
+              }}
+              onBlur={() => setRefereeTouched(true)}
+              placeholder="0xRefereeWallet"
+              className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+            />
+            {refereeError && (
+              <p className="text-xs text-red-500">{refereeError}</p>
+            )}
+            {txState.action === "create-escrow" && (
+              <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
+                <p className="text-xs text-text-tertiary">
+                  Estado: {txState.status}
+                </p>
+                {txState.hash && (
+                  <p className="text-xs text-text-tertiary break-all">
+                    Tx: {txState.hash}
+                  </p>
+                )}
+                {txState.cloneAddress && (
+                  <p className="text-xs text-text-tertiary break-all">
+                    Escrow: {txState.cloneAddress}
+                  </p>
+                )}
+                {txState.error && (
+                  <p className="text-xs text-red-500">{txState.error}</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* [Agent-Generated] Game comparison area. */}
           <div className="mt-6 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">

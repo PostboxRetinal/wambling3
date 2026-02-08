@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 // [Agent-Generated] Bowl state + SessionFactory integration.
 import { useState, useCallback } from "react";
 import type { Coin, UseBowlParams } from "@/types/bowl.types";
@@ -8,7 +9,7 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [coins, setCoins] = useState<Coin[]>([]);
 
-  const { createSession, txState, resetTxState } = useSessionFactory();
+  const { createSession, createRpsClone, txState, resetTxState } = useSessionFactory();
 
   const quickAmounts = [
     { label: "0.001", value: "0.001" },
@@ -93,5 +94,7 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     handleMaxBet,
     isBetValid,
     txState,
+    createRpsClone,
+    resetTxState,
   };
 };

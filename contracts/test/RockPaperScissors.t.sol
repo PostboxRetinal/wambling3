@@ -195,6 +195,25 @@ contract RockPaperScissorsTest is Test {
         rps.claimPrize(gameId, signature);
     }
 
+    function testRefereeCannotCreateGame() external {
+        RockPaperScissors local = new RockPaperScissors(alice);
+
+        vm.prank(alice);
+        vm.expectRevert(RockPaperScissors.InvalidParams.selector);
+        local.createGame{value: BET}(1);
+    }
+
+    function testRefereeCannotJoinGame() external {
+        RockPaperScissors local = new RockPaperScissors(bob);
+
+        vm.prank(alice);
+        uint256 gameId = local.createGame{value: BET}(1);
+
+        vm.prank(bob);
+        vm.expectRevert(RockPaperScissors.InvalidParams.selector);
+        local.joinGame{value: BET}(gameId);
+    }
+
     function _startGameBestOf1() internal returns (uint256 gameId) {
         vm.prank(alice);
         gameId = rps.createGame{value: BET}(1);

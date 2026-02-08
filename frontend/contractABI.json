@@ -16,6 +16,11 @@
   },
   {
     "inputs": [],
+    "name": "ImplementationNotSet",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidWinner",
     "type": "error"
   },
@@ -75,6 +80,44 @@
     "inputs": [],
     "name": "UnknownSession",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "clone",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "referee",
+        "type": "address"
+      }
+    ],
+    "name": "RpsCloneCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "RpsImplementationUpdated",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -238,6 +281,25 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "referee",
+        "type": "address"
+      }
+    ],
+    "name": "createRpsClone",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "clone",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
