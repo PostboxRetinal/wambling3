@@ -1,5 +1,4 @@
 import { WalletBalance } from "@/components/web3";
-import { Card, CardContent } from "@/components/ui";
 
 export default function HomeLayout({
   children,
@@ -14,36 +13,6 @@ export default function HomeLayout({
             <div className="animate-fade-in">
               <WalletBalance />
             </div>
-
-            <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm">
-              <CardContent className="space-y-6">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  Estadísticas
-                </h3>
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
-                  <span className="text-sm text-text-secondary">
-                    Total Apostado
-                  </span>
-                  <span className="text-lg font-bold text-primary">
-                    0.000 ETH
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
-                  <span className="text-sm text-text-secondary">
-                    Total Ganado
-                  </span>
-                  <span className="text-lg font-bold text-green-400">
-                    0.000 ETH
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-bg-tertiary/50 rounded-lg">
-                  <span className="text-sm text-text-secondary">
-                    Partidas Jugadas
-                  </span>
-                  <span className="text-lg font-bold text-text-primary">0</span>
-                </div>
-              </CardContent>
-            </Card>
           </div>
           <div className="lg:col-span-2">{children}</div>
         </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWalletBalance, AVAILABLE_CHAINS } from "@/hooks/web3/useWallet";
 import { useFundWallet, usePrivy } from "@privy-io/react-auth";
+import { useEnsName } from "@/hooks/web3/useEnsName";
 import {
   Button,
   Card,
@@ -29,6 +30,7 @@ export const WalletBalance = () => {
   const { balance, isLoading, address, refetch } = useWalletBalance({
     chain: selectedChain,
   });
+  const { ensName } = useEnsName(address);
 
   if (!address) {
     return null;
@@ -96,7 +98,7 @@ export const WalletBalance = () => {
             </span>
             <div className="flex items-center gap-2">
               <code className="text-sm text-text-primary font-mono px-3 py-1 rounded-md">
-                {formatAddress(address)}
+                {ensName || formatAddress(address)}
               </code>
               <Button
                 onClick={handleCopyAddress}

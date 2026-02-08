@@ -9,6 +9,7 @@ import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { useBowl } from "@/hooks/web3/useBowl";
 import { useGameSession } from "@/hooks/web3/useGameSession";
+import { useEnsName } from "@/hooks/web3/useEnsName";
 import {
   SESSION_FACTORY_CHAIN,
 } from "@/lib/contracts/sessionFactory";
@@ -60,6 +61,9 @@ export const Bowl = () => {
   const { balance, isLoading: isBalanceLoading } = useWalletBalance();
   const { wallets } = useWallets();
   const currentAddress = wallets[0]?.address ?? null;
+  const { ensName: currentEnsName } = useEnsName(currentAddress);
+  const opponentAddress = snapshot?.opponent ?? null;
+  const { ensName: opponentEnsName } = useEnsName(opponentAddress);
   const balanceNum = balance ? parseFloat(balance) : 0;
   const hasBalance = !!balance && !Number.isNaN(balanceNum);
   const betAmountNum = betAmount ? parseFloat(betAmount) : 0;
@@ -481,7 +485,8 @@ export const Bowl = () => {
                 Tu wallet
               </p>
               <p className="text-sm text-text-primary font-mono">
-                {currentAddress ? formatAddress(currentAddress) : "Sin wallet"}
+                {currentEnsName ||
+                  (currentAddress ? formatAddress(currentAddress) : "Sin wallet")}
               </p>
               <div className="flex justify-center">{rpsIcon(localMove)}</div>
               <p className="text-xs text-text-tertiary">
@@ -496,9 +501,10 @@ export const Bowl = () => {
                 Oponente
               </p>
               <p className="text-sm text-text-primary font-mono">
-                {playerSlots[1]?.address
-                  ? formatAddress(playerSlots[1].address)
-                  : "Esperando jugador"}
+                {opponentEnsName ||
+                  (playerSlots[1]?.address
+                    ? formatAddress(playerSlots[1].address)
+                    : "Esperando jugador")}
               </p>
               <div className="flex justify-center">{rpsIcon(null)}</div>
               <p className="text-xs text-text-tertiary">Sin eleccion</p>

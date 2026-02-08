@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { DiceIcon } from "@/components/common/DiceIcon";
 import { FullScreenLoader } from "@/components/common/FullScreenLoader";
+import { useEnsName } from "@/hooks/web3/useEnsName";
 import { usePrivy } from "@privy-io/react-auth";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,13 @@ export default function ProtectedLayout({
 }) {
   const { ready, user } = usePrivy();
   const router = useRouter();
+  const walletAddress = user?.wallet?.address ?? null;
+  const { ensName } = useEnsName(walletAddress);
+
+  const formatAddress = (addr?: string | null) => {
+    if (!addr) return "";
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
 
   useEffect(() => {
     if (ready && !user) {
@@ -67,10 +75,7 @@ export default function ProtectedLayout({
                 <div className="text-right">
                   <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">Usuario</p>
                   <p className="text-sm text-primary font-mono font-bold">
-                    {user?.email?.address ||
-                      (user?.wallet?.address
-                        ? `${user.wallet.address.slice(0, 6)}...${user.wallet.address.slice(-4)}`
-                        : "")}
+                    {user?.email?.address || ensName || formatAddress(walletAddress)}
                   </p>
                 </div>
               </div>

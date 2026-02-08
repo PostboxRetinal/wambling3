@@ -6,12 +6,15 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  encodeFunctionData,
   formatEther,
   getContract,
   http,
   keccak256,
+  type EIP1193Provider,
   type Hex,
 } from "viem";
+import { namehash } from "viem/ens";
 import { sepolia } from "viem/chains";
 import { toast } from "sonner";
 import type {
@@ -51,14 +54,20 @@ const REGISTRAR_CONTROLLER_ABI = [
     type: "function",
     stateMutability: "pure",
     inputs: [
-      { name: "name", type: "string" },
-      { name: "owner", type: "address" },
-      { name: "duration", type: "uint256" },
-      { name: "secret", type: "bytes32" },
-      { name: "resolver", type: "address" },
-      { name: "data", type: "bytes[]" },
-      { name: "reverseRecord", type: "bool" },
-      { name: "ownerControlledFuses", type: "uint16" },
+      {
+        name: "registration",
+        type: "tuple",
+        components: [
+          { name: "label", type: "string" },
+          { name: "owner", type: "address" },
+          { name: "duration", type: "uint256" },
+          { name: "secret", type: "bytes32" },
+          { name: "resolver", type: "address" },
+          { name: "data", type: "bytes[]" },
+          { name: "reverseRecord", type: "uint8" },
+          { name: "referrer", type: "bytes32" },
+        ],
+      },
     ],
     outputs: [{ type: "bytes32" }],
   },
@@ -74,14 +83,20 @@ const REGISTRAR_CONTROLLER_ABI = [
     type: "function",
     stateMutability: "payable",
     inputs: [
-      { name: "name", type: "string" },
-      { name: "owner", type: "address" },
-      { name: "duration", type: "uint256" },
-      { name: "secret", type: "bytes32" },
-      { name: "resolver", type: "address" },
-      { name: "data", type: "bytes[]" },
-      { name: "reverseRecord", type: "bool" },
-      { name: "ownerControlledFuses", type: "uint16" },
+      {
+        name: "registration",
+        type: "tuple",
+        components: [
+          { name: "label", type: "string" },
+          { name: "owner", type: "address" },
+          { name: "duration", type: "uint256" },
+          { name: "secret", type: "bytes32" },
+          { name: "resolver", type: "address" },
+          { name: "data", type: "bytes[]" },
+          { name: "reverseRecord", type: "uint8" },
+          { name: "referrer", type: "bytes32" },
+        ],
+      },
     ],
     outputs: [],
   },
@@ -95,6 +110,16 @@ const RESOLVER_ABI = [
     stateMutability: "nonpayable",
     inputs: [{ name: "name", type: "string" }],
     outputs: [{ type: "bytes32" }],
+  },
+  {
+    name: "setAddr",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "node", type: "bytes32" },
+      { name: "addr", type: "address" },
+    ],
+    outputs: [],
   },
 ] as const;
 
@@ -116,6 +141,10 @@ const ENS_PUBLIC_RESOLVER = (process.env.NEXT_PUBLIC_ENS_RESOLVER ||
   "0x8FADE66B79cC9f707aB26799354482EB93a5B7dD") as `0x${string}`;
 const ENS_REVERSE_REGISTRAR = (process.env.NEXT_PUBLIC_ENS_REVERSE_REGISTRAR ||
   "0x084b1c3C81545d370f3634392De611CaaBFf8148") as `0x${string}`;
+
+const REVERSE_RECORD_BOTH = 3; // Ethereum + Default
+const ZERO_REFERRER =
+  "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 
 
 export const useRegisterENS = (): UseRegisterENSResult => {
@@ -144,6 +173,21 @@ export const useRegisterENS = (): UseRegisterENSResult => {
     []
   );
 
+  const ensureCorrectChain = useCallback(async (provider: EIP1193Provider) => {
+    const chainIdHex = (await provider.request({
+      method: "eth_chainId",
+    })) as string;
+    const chainId = Number(chainIdHex);
+
+    if (chainId === sepolia.id) return;
+
+    const targetChainIdHex = `0x${sepolia.id.toString(16)}`;
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: targetChainIdHex }],
+    });
+  }, []);
+
   // [Agent-Generated] Get wallet client for write operations.
   const getWalletClient = useCallback(async () => {
     if (!wallets[0]) throw new Error("No wallet connected");
@@ -151,11 +195,13 @@ export const useRegisterENS = (): UseRegisterENSResult => {
     const provider = await wallets[0].getEthereumProvider();
     if (!provider) throw new Error("No provider available");
 
+    await ensureCorrectChain(provider as EIP1193Provider);
+
     return createWalletClient({
       chain: sepolia,
       transport: custom(provider),
     });
-  }, [wallets]);
+  }, [ensureCorrectChain, wallets]);
 
   // [Agent-Generated] Get contract instances.
   const getContracts = useCallback(async () => {
@@ -181,6 +227,21 @@ export const useRegisterENS = (): UseRegisterENSResult => {
 
     return { controller, resolver, reverseRegistrar, walletClient };
   }, [publicClient, getWalletClient]);
+
+  const buildResolverData = useCallback(
+    (label: string, owner: `0x${string}`) => {
+      // [Agent-Generated] Set forward record so reverse lookup validates the name.
+      const node = namehash(`${label}.eth`);
+      return [
+        encodeFunctionData({
+          abi: RESOLVER_ABI,
+          functionName: "setAddr",
+          args: [node, owner],
+        }),
+      ];
+    },
+    []
+  );
 
   // [Agent-Generated] Check if ENS name is available.
   const checkAvailability = useCallback(
@@ -256,16 +317,23 @@ export const useRegisterENS = (): UseRegisterENSResult => {
         const totalPrice = priceData.base + priceData.premium;
         const price = formatEther(totalPrice);
 
+        const resolverData = buildResolverData(
+          label,
+          walletAddress as `0x${string}`
+        );
+
         // Create commitment
         const commitment = await controller.read.makeCommitment([
-          label,
-          walletAddress as `0x${string}`,
-          BigInt(duration),
-          secret,
-          ENS_PUBLIC_RESOLVER,
-          [],
-          false,
-          0,
+          {
+            label,
+            owner: walletAddress as `0x${string}`,
+            duration: BigInt(duration),
+            secret,
+            resolver: ENS_PUBLIC_RESOLVER,
+            data: resolverData,
+            reverseRecord: REVERSE_RECORD_BOTH,
+            referrer: ZERO_REFERRER,
+          },
         ]);
 
         // Send commit transaction
@@ -343,23 +411,30 @@ export const useRegisterENS = (): UseRegisterENSResult => {
       const totalPrice = priceData.base + priceData.premium;
       const priceWithBuffer = (totalPrice * BigInt(105)) / BigInt(100);
 
-      // Send register transaction
-      const hash = await controller.write.register(
-        [
-          state.label,
-          walletAddress as `0x${string}`,
-          BigInt(state.duration),
-          state.secret as Hex,
-          ENS_PUBLIC_RESOLVER,
-          [],
-          false,
-          0,
-        ],
-        {
-          account: walletAddress as `0x${string}`,
-          value: priceWithBuffer,
-        }
+      const resolverData = buildResolverData(
+        state.label,
+        walletAddress as `0x${string}`
       );
+
+      // Send register transaction
+        const hash = await controller.write.register(
+          [
+            {
+              label: state.label,
+              owner: walletAddress as `0x${string}`,
+              duration: BigInt(state.duration),
+              secret: state.secret as Hex,
+              resolver: ENS_PUBLIC_RESOLVER,
+            data: resolverData,
+              reverseRecord: REVERSE_RECORD_BOTH,
+              referrer: ZERO_REFERRER,
+            },
+          ],
+          {
+            account: walletAddress as `0x${string}`,
+            value: priceWithBuffer,
+          }
+        );
 
       toast.loading("Registering ENS name...", { id: "register" });
       // Wait up to 5 minutes for transaction confirmation with 2s polling
