@@ -52,7 +52,7 @@ export const TransactionDialog = ({
     try {
       await handleSendTransaction({ to: address, amount });
 
-      // Actualizar el balance del componente padre
+      // Update parent balance
       if (onTransactionComplete) {
         onTransactionComplete();
       }
@@ -61,8 +61,8 @@ export const TransactionDialog = ({
       setAmount("");
       setOpen(false);
     } catch (error) {
-      // El error ya se maneja en el hook con toast
-      console.error("Error en la transacción:", error);
+      // Error is already handled in the hook with a toast
+      console.error("Transaction error:", error);
     }
   };
 
@@ -83,7 +83,7 @@ export const TransactionDialog = ({
           size="sm"
           className="w-[200px] border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
         >
-          Transferir fondos
+          Transfer funds
         </Button>
       </DialogTrigger>
       <DialogPortal>
@@ -91,18 +91,17 @@ export const TransactionDialog = ({
         <DialogContent className="fixed top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 bg-bg-secondary p-6 rounded-lg shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-text-primary">
-              Transferir Fondos
+              Transfer Funds
             </DialogTitle>
             <DialogDescription className="mt-2 text-sm text-text-tertiary">
-              Complete el formulario a continuación para transferir fondos a
-              otra wallet.
+              Complete the form below to transfer funds to another wallet.
             </DialogDescription>
           </DialogHeader>
 
           <form id="transaction-form" onSubmit={handleSubmit} className="mt-4">
             <div className="space-y-4">
               <div>
-                <Label className="mb-2 block">Dirección de la wallet</Label>
+                <Label className="mb-2 block">Wallet address</Label>
                 <Input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -111,13 +110,13 @@ export const TransactionDialog = ({
                 />
                 {!isAddressValid && (
                   <p className="mt-1 text-xs text-red-500">
-                    Dirección inválida
+                    Invalid address
                   </p>
                 )}
               </div>
 
               <div>
-                <Label className="mb-2 block">Cantidad a transferir</Label>
+                <Label className="mb-2 block">Amount to transfer</Label>
                 <Input
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -128,11 +127,11 @@ export const TransactionDialog = ({
                   className={!isAmountValid ? "border-red-500" : ""}
                 />
                 {!isAmountValid && (
-                  <p className="mt-1 text-xs text-red-500">Cantidad inválida</p>
+                  <p className="mt-1 text-xs text-red-500">Invalid amount</p>
                 )}
                 {balance && (
                   <p className="mt-1 text-xs text-text-tertiary">
-                    Balance disponible: {parseFloat(balance).toFixed(6)} ETH
+                    Available balance: {parseFloat(balance).toFixed(6)} ETH
                   </p>
                 )}
               </div>
@@ -145,7 +144,7 @@ export const TransactionDialog = ({
                 variant="outline"
                 disabled={transactionState.isSubmitting}
               >
-                Cancelar
+                Cancel
               </Button>
             </DialogClose>
             <Button
@@ -154,7 +153,7 @@ export const TransactionDialog = ({
               variant="default"
               disabled={!canSubmit}
             >
-              {transactionState.isSubmitting ? "Enviando..." : "Enviar"}
+              {transactionState.isSubmitting ? "Sending..." : "Send"}
             </Button>
           </DialogFooter>
         </DialogContent>

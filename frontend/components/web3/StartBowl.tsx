@@ -33,11 +33,11 @@ export const StartBowl = () => {
             <div className="relative z-10">
               <DiceIcon className="w-12 h-12 text-primary mb-4 group-hover:rotate-12 transition-transform" />
               <h4 className="text-xl font-bold text-text-primary mb-2">
-                Inicia un Juego
+                Start a Game
               </h4>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-text-tertiary">
-                  Apuesta y gana!
+                  Place your bet and win!
                 </span>
                 <span className="text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform">→</span>
               </div>

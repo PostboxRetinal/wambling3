@@ -1,4 +1,5 @@
-export function FullScreenLoader({ message = "Cargando..." }: { message?: string }) {
+// [AGENT-GENERATED] Default loader text translated to English.
+export function FullScreenLoader({ message = "Loading..." }: { message?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary">
       <div className="flex flex-col items-center gap-4">

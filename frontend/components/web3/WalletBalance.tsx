@@ -69,17 +69,17 @@ export const WalletBalance = () => {
         address,
         options: {
           uiConfig: {
-            receiveFundsTitle: "Agregar fondos",
+            receiveFundsTitle: "Add funds",
             receiveFundsSubtitle:
-              "Escanea el QR o copia tu dirección para recibir fondos.",
+              "Scan the QR or copy your address to receive funds.",
           },
         },
       });
       await refetch();
     } catch (error) {
-      console.error("Error al abrir el flujo de funding:", error);
-      toast.error("No se pudo abrir el flujo de funding", {
-        description: "Intenta nuevamente en unos segundos.",
+      console.error("Failed to open funding flow:", error);
+      toast.error("Unable to open funding flow", {
+        description: "Please try again in a few seconds.",
       });
     } finally {
       setIsFunding(false);
@@ -101,7 +101,7 @@ export const WalletBalance = () => {
               <Button
                 onClick={handleCopyAddress}
                 className="p-2 hover:bg-bg-primary/50 rounded-md transition-colors border border-border-primary/20"
-                title="Copiar dirección"
+                title="Copy address"
               >
                 {copied ? (
                   <Check className="w-4 h-4 text-green-500" />
@@ -147,7 +147,7 @@ export const WalletBalance = () => {
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                     <span className="text-text-tertiary text-sm">
-                      Cargando...
+                      Loading...
                     </span>
                   </div>
                 ) : (
@@ -170,7 +170,7 @@ export const WalletBalance = () => {
                 onClick={handleFundWallet}
                 disabled={!ready || !authenticated || !address || isFunding}
               >
-                {isFunding ? "Abriendo..." : "Agregar fondos"}
+                {isFunding ? "Opening..." : "Add funds"}
               </Button>
               <TransactionDialog onTransactionComplete={refetch} />
             </div>

@@ -68,18 +68,18 @@ export const useSessionFactory = () => {
   const ensureWalletReady = useCallback(async () => {
     // [Agent-Generated] Enforce authenticated wallet presence.
     if (!authenticated) {
-      throw new Error("Conecta tu wallet para continuar.");
+      throw new Error("Connect your wallet to continue.");
     }
 
     const wallet = wallets[0];
     if (!wallet) {
-      throw new Error("No se encontro una wallet activa.");
+      throw new Error("No active wallet found.");
     }
 
     // [Agent-Generated] Pull the EIP-1193 provider from Privy.
     const provider = await wallet.getEthereumProvider();
     if (!provider?.request) {
-      throw new Error("No se pudo acceder al proveedor de la wallet.");
+      throw new Error("Could not access wallet provider.");
     }
 
     return {
@@ -216,12 +216,12 @@ export const useSessionFactory = () => {
 
         // [Agent-Generated] Validate bet amount before parsing.
         if (!betAmount || Number.isNaN(Number(betAmount))) {
-          throw new Error("Monto de apuesta invalido.");
+          throw new Error("Invalid bet amount.");
         }
 
         const betWei = parseEther(betAmount);
         if (betWei <= BigInt(0)) {
-          throw new Error("El monto debe ser mayor a 0.");
+          throw new Error("Amount must be greater than 0.");
         }
 
         const gameType = GAME_TYPE_MAP[gameId];
@@ -267,8 +267,8 @@ export const useSessionFactory = () => {
           action: "create-session",
         }));
 
-        toast.message("Transaccion enviada", {
-          description: "Esperando confirmacion en la red.",
+        toast.message("Transaction sent", {
+          description: "Waiting for network confirmation.",
         });
 
         // [Agent-Generated] Wait for confirmation on-chain.
@@ -287,10 +287,10 @@ export const useSessionFactory = () => {
           action: "create-session",
         }));
 
-        toast.success("Sesion creada", {
+        toast.success("Session created", {
           description: emittedSessionId ?? sessionId
-            ? `Sesion: ${emittedSessionId ?? sessionId}`
-            : "Sesion confirmada en la red.",
+            ? `Session: ${emittedSessionId ?? sessionId}`
+            : "Session confirmed on-chain.",
         });
 
         return {
@@ -302,7 +302,7 @@ export const useSessionFactory = () => {
         const message =
           error instanceof Error
             ? error.message
-            : "No se pudo completar la transaccion.";
+            : "Transaction could not be completed.";
 
         setTxState((prev) => ({
           ...prev,
@@ -311,7 +311,7 @@ export const useSessionFactory = () => {
           action: "create-session",
         }));
 
-        toast.error("Error al crear la sesion", {
+        toast.error("Failed to create session", {
           description: message,
         });
 
@@ -372,8 +372,8 @@ export const useSessionFactory = () => {
           action: "create-escrow",
         }));
 
-        toast.message("Escrow enviado", {
-          description: "Creando el contrato de escrow.",
+        toast.message("Escrow sent", {
+          description: "Creating escrow contract.",
         });
 
         const receipt = await publicClient.waitForTransactionReceipt({
@@ -391,10 +391,10 @@ export const useSessionFactory = () => {
           action: "create-escrow",
         }));
 
-        toast.success("Escrow creado", {
+        toast.success("Escrow created", {
           description: cloneAddress
             ? `Escrow: ${cloneAddress}`
-            : "Escrow confirmado en la red.",
+            : "Escrow confirmed on-chain.",
         });
 
         return { receipt, cloneAddress, hash };
@@ -402,7 +402,7 @@ export const useSessionFactory = () => {
         const message =
           error instanceof Error
             ? error.message
-            : "No se pudo crear el escrow.";
+            : "Could not create escrow.";
 
         setTxState((prev) => ({
           ...prev,
@@ -411,7 +411,7 @@ export const useSessionFactory = () => {
           action: "create-escrow",
         }));
 
-        toast.error("Error al crear escrow", {
+        toast.error("Failed to create escrow", {
           description: message,
         });
 
@@ -471,8 +471,8 @@ export const useSessionFactory = () => {
           action: "set-implementation",
         }));
 
-        toast.message("Actualizando implementacion", {
-          description: "Esperando confirmacion en la red.",
+        toast.message("Updating implementation", {
+          description: "Waiting for network confirmation.",
         });
 
         const receipt = await publicClient.waitForTransactionReceipt({
@@ -487,8 +487,8 @@ export const useSessionFactory = () => {
           action: "set-implementation",
         }));
 
-        toast.success("Implementacion actualizada", {
-          description: "RPS implementation configurada.",
+        toast.success("Implementation updated", {
+          description: "RPS implementation configured.",
         });
 
         return { receipt, hash };
@@ -496,7 +496,7 @@ export const useSessionFactory = () => {
         const message =
           error instanceof Error
             ? error.message
-            : "No se pudo actualizar la implementacion.";
+            : "Could not update implementation.";
 
         setTxState((prev) => ({
           ...prev,
@@ -505,7 +505,7 @@ export const useSessionFactory = () => {
           action: "set-implementation",
         }));
 
-        toast.error("Error al actualizar implementacion", {
+        toast.error("Failed to update implementation", {
           description: message,
         });
 

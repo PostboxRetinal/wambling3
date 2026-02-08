@@ -12,15 +12,15 @@ export function LogoutButton() {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Sesión cerrada", {
-        description: "Hasta pronto",
+      toast.success("Signed out", {
+        description: "See you soon",
       });
       router.replace("/login");
       window.location.assign("/login");
     } catch (error) {
-      toast.error("Error al cerrar sesión", {
+      toast.error("Failed to sign out", {
         description:
-          error instanceof Error ? error.message : "Intenta de nuevo",
+          error instanceof Error ? error.message : "Please try again",
       });
     }
   };
@@ -32,7 +32,7 @@ export function LogoutButton() {
       size="sm"
       className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary-dark"
     >
-      Cerrar sesión
+      Sign out
     </Button>
   );
 }

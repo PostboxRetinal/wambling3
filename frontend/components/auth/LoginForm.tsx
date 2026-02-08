@@ -68,12 +68,12 @@ export function LoginForm() {
         <div className="mb-3 flex justify-center">
           <DiceIcon className="h-16 w-16 text-primary" />
         </div>
-        <CardTitle className="text-3xl text-primary">Iniciar sesión</CardTitle>
+        <CardTitle className="text-3xl text-primary">Sign in</CardTitle>
         <CardDescription className="text-text-secondary">
           {statusMessage ||
             (isCodeSent
-              ? "Revisa tu email e ingresa el código"
-              : "Accede a Wambling3 con tu email")}
+              ? "Check your email and enter the code"
+              : "Access Wambling3 with your email")}
         </CardDescription>
       </CardHeader>
 
@@ -81,12 +81,12 @@ export function LoginForm() {
         {!isCodeSent ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="email" className="text-text-primary">
-              Correo electrónico
+              Email address
             </Label>
             <Input
               id="email"
               type="email"
-              placeholder="tu@email.com"
+              placeholder="you@email.com"
               value={email}
               onChange={(e) => setEmail(e.currentTarget.value)}
               onKeyDown={handleEmailKeyDown}
@@ -99,7 +99,7 @@ export function LoginForm() {
           <div className="flex flex-col items-center gap-4">
             <div className="flex flex-col gap-3 text-center">
               <Label className="text-text-primary text-base">
-                Enviado a{" "}
+                Sent to{" "}
                 <span className="text-text-secondary font-medium">{email}</span>
               </Label>
             </div>
@@ -151,7 +151,7 @@ export function LoginForm() {
             size="lg"
             className="bg-primary-dark hover:bg-primary-darker"
           >
-            {isLoading ? "Enviando..." : "Enviar código"}
+            {isLoading ? "Sending..." : "Send code"}
           </Button>
         ) : (
           <div className="flex flex-col gap-3 mt-2">
@@ -163,8 +163,8 @@ export function LoginForm() {
               className="bg-primary-dark hover:bg-primary-darker"
             >
               {isLoading
-                ? statusMessage || "Verificando..."
-                : "Verificar código"}
+                ? statusMessage || "Verifying..."
+                : "Verify code"}
             </Button>
             <Button
               type="button"
@@ -174,7 +174,7 @@ export function LoginForm() {
               size="sm"
               className="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
             >
-              ← Cambiar email
+              ← Change email
             </Button>
           </div>
         )}

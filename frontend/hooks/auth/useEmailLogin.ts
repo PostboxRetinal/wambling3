@@ -23,7 +23,7 @@ export function useEmailLogin() {
       setIsCodeSent(true);
       setStatusMessage("");
     } catch (error) {
-      console.error("Error al enviar código:", error);
+      console.error("Failed to send code:", error);
       // [Agent-Generated] Retry captcha if Privy reports captcha failure/timeout.
       const maybeCaptchaError = error as {
         privyErrorCode?: string;
@@ -34,9 +34,9 @@ export function useEmailLogin() {
         maybeCaptchaError?.privyErrorCode?.startsWith("captcha")
       ) {
         setCaptchaKey((prev) => prev + 1);
-        setStatusMessage("Captcha requerido. Intenta de nuevo.");
+        setStatusMessage("Captcha required. Please try again.");
       } else {
-        setStatusMessage("Error al enviar el código. Intenta de nuevo.");
+        setStatusMessage("Failed to send the code. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -45,37 +45,37 @@ export function useEmailLogin() {
 
   const handleLogin = useCallback(async () => {
     setIsLoading(true);
-    setStatusMessage("Iniciando sesión...");
+    setStatusMessage("Signing in...");
 
     try {
-      // Login con el código
+      // Log in with the code
       await loginWithCode({ code });
-      setStatusMessage("Configurando tu wallet...");
+      setStatusMessage("Setting up your wallet...");
 
-      // Crear wallet verificando si ya existe
+        // Create wallet, checking if it already exists
       try {
         await createWallet();
-        setStatusMessage("¡Wallet lista! Redirigiendo...");
+        setStatusMessage("Wallet ready! Redirecting...");
       } catch (walletError: unknown) {
         const errorMessage =
           walletError instanceof Error
             ? walletError.message
             : String(walletError);
         if (errorMessage.includes("already has")) {
-          setStatusMessage("¡Bienvenido de vuelta!");
+          setStatusMessage("Welcome back!");
         } else {
-          console.error("Error creando wallet:", walletError);
-          setStatusMessage("Sesión iniciada. Wallet pendiente.");
+          console.error("Failed to create wallet:", walletError);
+          setStatusMessage("Signed in. Wallet pending.");
         }
       }
 
-      // Redirigir al home después de todo
+      // Redirect to home after all steps
       setTimeout(() => {
         router.push("/home");
       }, 1000);
     } catch (error) {
-      console.error("Error al iniciar sesión:", error);
-      setStatusMessage("Error al iniciar sesión. Verifica el código.");
+      console.error("Failed to sign in:", error);
+      setStatusMessage("Sign-in failed. Check the code.");
       setIsLoading(false);
     }
   }, [code, loginWithCode, createWallet, router]);

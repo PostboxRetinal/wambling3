@@ -33,7 +33,7 @@ export default function ProtectedLayout({
   }, [ready, router, user]);
 
   if (!ready || (ready && !user)) {
-    return <FullScreenLoader message="Redirigiendo..." />;
+    return <FullScreenLoader message="Redirecting..." />;
   }
 
   return (
@@ -51,7 +51,7 @@ export default function ProtectedLayout({
                   Wambling3
                 </h1>
                 <p className="text-xs text-text-tertiary font-medium">
-                  Web3 Gaming Platform
+                  Web3 Gambling Platform
                 </p>
               </div>
             </Link>
@@ -61,13 +61,13 @@ export default function ProtectedLayout({
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-text-primary hover:text-primary hover:bg-primary/10 transition-all duration-300"
                 href="/home"
               >
-                Inicio
+                Home
               </Link>
               {hasEnsName ? (
                 <span
                   className="px-4 py-2 rounded-lg text-sm font-semibold text-text-tertiary bg-bg-tertiary/40 border border-primary/10 cursor-not-allowed"
                   aria-disabled="true"
-                  title="Ya tienes un ENS registrado"
+                  title="You already have an ENS registered"
                 >
                   ENS Register (claimed)
                 </span>
@@ -89,8 +89,8 @@ export default function ProtectedLayout({
                   </p>
                   <p className="text-sm text-primary font-mono font-bold">
                     {isEnsLoading
-                      ? "Resolviendo..."
-                      : ensName || formatAddress(walletAddress) || "Sin wallet"}
+                      ? "Resolving..."
+                      : ensName || formatAddress(walletAddress) || "No wallet"}
                   </p>
                   {user?.email?.address && (
                     <p className="text-[10px] text-text-tertiary font-medium">

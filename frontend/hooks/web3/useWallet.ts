@@ -52,8 +52,8 @@ export const useWalletBalance = ({
     } catch (err) {
       console.error("Error fetching balance:", err);
       setBalance(null);
-      toast.error("Error al obtener el balance", {
-        description: "No se pudo conectar con la red",
+      toast.error("Failed to fetch balance", {
+        description: "Could not connect to the network",
       });
     } finally {
       setIsLoading(false);
@@ -77,13 +77,13 @@ export const useWalletBalance = ({
       setTransactionState({ isSubmitting: true, error: null, success: false });
 
       try {
-        if (!wallets[0]) throw new Error("No hay wallet conectada");
-        if (!isValidAddress(to)) throw new Error("Dirección de wallet inválida");
-        if (!isValidAmount(amount)) throw new Error("Cantidad inválida");
+        if (!wallets[0]) throw new Error("No wallet connected");
+        if (!isValidAddress(to)) throw new Error("Invalid wallet address");
+        if (!isValidAmount(amount)) throw new Error("Invalid amount");
         
         const amountNum = parseFloat(amount);
         const balanceNum = balance ? parseFloat(balance) : 0;
-        if (amountNum > balanceNum) throw new Error("Balance insuficiente");
+        if (amountNum > balanceNum) throw new Error("Insufficient balance");
 
         await sendTransaction({
           to: to as `0x${string}`,
@@ -91,8 +91,8 @@ export const useWalletBalance = ({
         });
 
         setTransactionState({ isSubmitting: false, error: null, success: true });
-        toast.success("Transacción exitosa", {
-          description: `${amount} ETH enviados correctamente`,
+        toast.success("Transaction successful", {
+          description: `${amount} ETH sent successfully`,
         });
         
         await fetchBalance();
@@ -105,9 +105,9 @@ export const useWalletBalance = ({
           fetchBalance();
         }, 6000);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Error al enviar la transacción";
+        const errorMessage = err instanceof Error ? err.message : "Failed to send transaction";
         setTransactionState({ isSubmitting: false, error: errorMessage, success: false });
-        toast.error("Error en la transacción", {
+        toast.error("Transaction error", {
           description: errorMessage,
         });
         throw err;

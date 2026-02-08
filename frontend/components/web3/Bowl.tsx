@@ -105,10 +105,10 @@ export const Bowl = () => {
     isRefereeValid && !tablePlayers.has(normalizedReferee.toLowerCase());
   const refereeError = useMemo(() => {
     if (!refereeTouched) return null;
-    if (!normalizedReferee) return "El escrow es obligatorio.";
-    if (!isRefereeValid) return "Direccion de escrow invalida.";
+    if (!normalizedReferee) return "Escrow is required.";
+    if (!isRefereeValid) return "Invalid escrow address.";
     if (!isRefereeThirdParty)
-      return "El escrow no puede ser jugador de la mesa.";
+      return "Escrow cannot be a player at the table.";
     return null;
   }, [isRefereeThirdParty, isRefereeValid, normalizedReferee, refereeTouched]);
 
@@ -122,8 +122,8 @@ export const Bowl = () => {
     isOwner && isImplementationValid && !isImplementationSubmitting;
   const implementationError = useMemo(() => {
     if (!implementationTouched) return null;
-    if (!normalizedImplementation) return "Implementacion requerida.";
-    if (!isImplementationValid) return "Direccion invalida de implementacion.";
+    if (!normalizedImplementation) return "Implementation required.";
+    if (!isImplementationValid) return "Invalid implementation address.";
     return null;
   }, [implementationTouched, isImplementationValid, normalizedImplementation]);
 
@@ -225,7 +225,7 @@ export const Bowl = () => {
   );
 
   const displaySessionId = useMemo(() => {
-    if (!sessionIdInput) return "Sin sesión activa";
+    if (!sessionIdInput) return "No active session";
     if (sessionIdInput.length < 10) return sessionIdInput;
     return `${sessionIdInput.slice(0, 4)}..${sessionIdInput.slice(-3)}`;
   }, [sessionIdInput]);
@@ -299,7 +299,7 @@ export const Bowl = () => {
         });
         setOwnerAddress(owner as `0x${string}`);
       } catch (error) {
-        console.error("No se pudo leer owner:", error);
+        console.error("Failed to read owner:", error);
       } finally {
         setIsOwnerLoading(false);
       }
@@ -316,10 +316,10 @@ export const Bowl = () => {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-2xl font-bold text-text-primary relative z-10">
-                Piedra, Papel o Tijera
+                Rock, Paper, Scissors
               </h3>
               <p className="text-sm text-text-secondary">
-                Ronda off-chain · Listo para jugar
+                Off-chain round · Ready to play
               </p>
             </div>
           </div>
@@ -345,7 +345,7 @@ export const Bowl = () => {
           <div className="mt-4 flex items-center gap-3">
             <div className="flex-1">
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold mb-1">
-                ID de sesion
+                Session ID
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-lg font-mono font-bold text-text-primary">
@@ -357,7 +357,7 @@ export const Bowl = () => {
                   variant="ghost"
                   size="icon"
                   className="rounded-lg hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Copiar ID completo"
+                  title="Copy full ID"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -376,7 +376,7 @@ export const Bowl = () => {
                 </Button>
                 {copiedSession && (
                   <span className="text-xs text-green-500 font-semibold animate-pulse">
-                    ¡Copiado!
+                    Copied!
                   </span>
                 )}
               </div>
@@ -387,10 +387,10 @@ export const Bowl = () => {
           <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Estado de sesion
+                Session status
               </p>
               <p className="text-sm text-text-secondary">
-                {isSessionLoading ? "Actualizando" : actionState.status}
+                {isSessionLoading ? "Refreshing" : actionState.status}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -402,7 +402,7 @@ export const Bowl = () => {
                 disabled={isSessionLoading}
                 className="border-border-primary"
               >
-                {isSessionLoading ? "Actualizando..." : "Actualizar"}
+                {isSessionLoading ? "Refreshing..." : "Refresh"}
               </Button>
               <Button
                 type="button"
@@ -411,7 +411,7 @@ export const Bowl = () => {
                 onClick={handleCloseSession}
                 className="border-border-primary"
               >
-                Cerrar sesion
+                Close session
               </Button>
               <Button
                 type="button"
@@ -420,7 +420,7 @@ export const Bowl = () => {
                 onClick={() => setFlowMode("join")}
                 className="border-border-primary"
               >
-                Unirme a sesion
+                Join session
               </Button>
             </div>
           </div>
@@ -429,7 +429,7 @@ export const Bowl = () => {
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 p-4 rounded-xl border border-border-primary bg-bg-tertiary/40">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-text-secondary">
-                  ID de sesion para unirse
+                  Session ID to join
                 </label>
                 <Input
                   value={sessionIdInput}
@@ -437,13 +437,13 @@ export const Bowl = () => {
                     setSessionIdInput(e.target.value);
                     resetActionState();
                   }}
-                  placeholder="Pega el ID aqui"
+                  placeholder="Paste the ID here"
                   className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
                 />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-text-secondary">
-                  Apuesta requerida (ETH)
+                  Required bet (ETH)
                 </label>
                 <Input
                   value={joinAmount}
@@ -454,7 +454,7 @@ export const Bowl = () => {
                 />
                 {stakeEth && (
                   <p className="text-xs text-text-tertiary">
-                    Stake requerido: {stakeEth} ETH
+                    Required stake: {stakeEth} ETH
                   </p>
                 )}
               </div>
@@ -464,7 +464,7 @@ export const Bowl = () => {
                   disabled={!canJoinOnsite}
                   className="w-full"
                 >
-                  {isJoinSubmitting ? "Uniendote..." : "Unirme a la sesion"}
+                  {isJoinSubmitting ? "Joining..." : "Join session"}
                 </Button>
                 {actionState.hash && (
                   <p className="text-xs text-text-tertiary break-all mt-2">
@@ -486,7 +486,7 @@ export const Bowl = () => {
                   Escrow / Referee
                 </p>
                 <p className="text-xs text-text-secondary">
-                  Debe ser un wallet de tercero, distinto a los jugadores.
+                  Must be a third-party wallet, different from the players.
                 </p>
               </div>
               <Button
@@ -497,7 +497,7 @@ export const Bowl = () => {
                 disabled={!isRefereeThirdParty || isEscrowSubmitting}
                 className="border-border-primary"
               >
-                {isEscrowSubmitting ? "Creando..." : "Crear Escrow"}
+                {isEscrowSubmitting ? "Creating..." : "Create Escrow"}
               </Button>
             </div>
             <Input
@@ -519,7 +519,7 @@ export const Bowl = () => {
             {txState.action === "create-escrow" && (
               <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
                 <p className="text-xs text-text-tertiary">
-                  Estado: {txState.status}
+                  Status: {txState.status}
                 </p>
                 {txState.hash && (
                   <p className="text-xs text-text-tertiary break-all">
@@ -544,10 +544,10 @@ export const Bowl = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                    Admin · Implementacion RPS
+                    Admin · RPS implementation
                   </p>
                   <p className="text-xs text-text-secondary">
-                    Solo el owner del SessionFactory puede actualizarla.
+                    Only the SessionFactory owner can update it.
                   </p>
                 </div>
                 <Button
@@ -558,7 +558,7 @@ export const Bowl = () => {
                   disabled={!canSetImplementation}
                   className="border-border-primary"
                 >
-                  {isImplementationSubmitting ? "Actualizando..." : "Set impl"}
+                  {isImplementationSubmitting ? "Updating..." : "Set impl"}
                 </Button>
               </div>
               <Input
@@ -576,13 +576,13 @@ export const Bowl = () => {
               )}
               {!isOwner && !isOwnerLoading && (
                 <p className="text-xs text-amber-500">
-                  Solo el owner puede ejecutar esta accion.
+                  Only the owner can perform this action.
                 </p>
               )}
               {txState.action === "set-implementation" && (
                 <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
                   <p className="text-xs text-text-tertiary">
-                    Estado: {txState.status}
+                    Status: {txState.status}
                   </p>
                   {txState.hash && (
                     <p className="text-xs text-text-tertiary break-all">
@@ -598,7 +598,7 @@ export const Bowl = () => {
           )}
           {!isOwner && !isOwnerLoading && (
             <p className="text-xs text-text-tertiary mt-2">
-              Admin disponible solo para el owner del SessionFactory.
+              Admin available only for the SessionFactory owner.
             </p>
           )}
 
@@ -606,15 +606,15 @@ export const Bowl = () => {
           <div className="mt-6 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
             <div className="rounded-xl border border-border-primary bg-bg-secondary/70 p-4 text-center space-y-3">
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Tu wallet
+                Your wallet
               </p>
               <p className="text-sm text-text-primary font-mono">
                 {currentEnsName ||
-                  (currentAddress ? formatAddress(currentAddress) : "Sin wallet")}
+                  (currentAddress ? formatAddress(currentAddress) : "No wallet")}
               </p>
               <div className="flex justify-center">{rpsIcon(localMove)}</div>
               <p className="text-xs text-text-tertiary">
-                {localMove ? `Elegiste ${localMove}` : "Sin eleccion"}
+                {localMove ? `You chose ${localMove}` : "No selection"}
               </p>
             </div>
 
@@ -622,23 +622,23 @@ export const Bowl = () => {
 
             <div className="rounded-xl border border-border-primary bg-bg-secondary/70 p-4 text-center space-y-3">
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Oponente
+                Opponent
               </p>
               <p className="text-sm text-text-primary font-mono">
                 {opponentEnsName ||
                   (playerSlots[1]?.address
                     ? formatAddress(playerSlots[1].address)
-                    : "Esperando jugador")}
+                    : "Waiting for player")}
               </p>
               <div className="flex justify-center">{rpsIcon(null)}</div>
-              <p className="text-xs text-text-tertiary">Sin eleccion</p>
+              <p className="text-xs text-text-tertiary">No selection</p>
             </div>
           </div>
 
           {!isOwnerLoading && !isOwner && (
             <div className="mt-2 flex items-center justify-between gap-3">
               <div className="text-xs text-text-tertiary space-y-1">
-                <p>Admin disponible solo para el owner del SessionFactory.</p>
+                <p>Admin available only for the SessionFactory owner.</p>
                 {ownerAddress && (
                   <p className="break-all">
                     Owner: {ownerAddress}
@@ -646,7 +646,7 @@ export const Bowl = () => {
                 )}
                 {currentAddress && (
                   <p className="break-all">
-                    Wallet actual: {currentAddress}
+                    Current wallet: {currentAddress}
                   </p>
                 )}
               </div>
@@ -657,7 +657,7 @@ export const Bowl = () => {
                 onClick={() => setShowAdminTools((prev) => !prev)}
                 className="border-border-primary"
               >
-                {showAdminTools ? "Ocultar admin" : "Mostrar admin"}
+                {showAdminTools ? "Hide admin" : "Show admin"}
               </Button>
             </div>
           )}
@@ -665,7 +665,7 @@ export const Bowl = () => {
           {/* [Agent-Generated] RPS action buttons. */}
           <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4">
             <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold mb-3">
-              Tu movimiento
+              Your move
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Button
@@ -676,7 +676,7 @@ export const Bowl = () => {
                 <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-lg border-2 border-gray-400">
                   <span className="text-2xl">🪨</span>
                 </div>
-                <span className="text-sm font-semibold">Piedra</span>
+                <span className="text-sm font-semibold">Rock</span>
               </Button>
               <Button
                 variant="outline"
@@ -686,7 +686,7 @@ export const Bowl = () => {
                 <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg border-2 border-blue-300">
                   <span className="text-2xl">📄</span>
                 </div>
-                <span className="text-sm font-semibold">Papel</span>
+                <span className="text-sm font-semibold">Paper</span>
               </Button>
               <Button
                 variant="outline"
@@ -696,7 +696,7 @@ export const Bowl = () => {
                 <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg border-2 border-red-400">
                   <span className="text-2xl">✂️</span>
                 </div>
-                <span className="text-sm font-semibold">Tijera</span>
+                <span className="text-sm font-semibold">Scissors</span>
               </Button>
             </div>
           </div>
@@ -705,22 +705,22 @@ export const Bowl = () => {
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1fr]">
             <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
               <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Apuesta activa
+                Active bet
               </p>
               <p className="text-sm text-text-secondary">
-                Stake requerido: {stakeEth || "0.0"} ETH
+                Required stake: {stakeEth || "0.0"} ETH
               </p>
               <p className="text-sm text-text-secondary">
-                Tu apuesta: {betAmount || "0"} ETH
+                Your bet: {betAmount || "0"} ETH
               </p>
               {hasBalance && !isOverBalance && (
                 <p className="text-xs text-text-tertiary">
-                  Balance disponible: {balance} ETH
+                  Available balance: {balance} ETH
                 </p>
               )}
               {isOverBalance && (
                 <p className="text-xs text-red-500">
-                  El monto supera tu balance disponible.
+                  Amount exceeds your available balance.
                 </p>
               )}
               {sessionError && (
@@ -732,7 +732,7 @@ export const Bowl = () => {
               <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                    Cantidad de Apuesta (ETH)
+                    Bet amount (ETH)
                   </label>
                   <div className="flex gap-2">
                     <Input
@@ -756,12 +756,12 @@ export const Bowl = () => {
                   </div>
                   {isBalanceLoading && (
                     <p className="text-xs text-text-tertiary">
-                      Cargando balance...
+                      Loading balance...
                     </p>
                   )}
                   {!isBalanceLoading && !hasBalance && (
                     <p className="text-xs text-text-tertiary">
-                      Conecta tu wallet para validar el balance.
+                      Connect your wallet to validate the balance.
                     </p>
                   )}
                 </div>
@@ -791,29 +791,29 @@ export const Bowl = () => {
                     <span className="flex items-center gap-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       {txState.status === "signing"
-                        ? "Firmando..."
+                        ? "Signing..."
                         : txState.status === "pending"
-                          ? "Confirmando..."
-                          : "Apostando..."}
+                          ? "Confirming..."
+                          : "Placing bet..."}
                     </span>
                   ) : (
-                    `Apostar ${betAmount || "0"} ETH`
+                    `Bet ${betAmount || "0"} ETH`
                   )}
                 </Button>
 
                 <div className="rounded-lg border border-border-primary bg-bg-tertiary/40 p-4 space-y-2">
                   <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                    Estado de transaccion
+                    Transaction status
                   </p>
                   <p className="text-sm text-text-secondary">
-                    Red activa: {SESSION_FACTORY_CHAIN.name}
+                    Active network: {SESSION_FACTORY_CHAIN.name}
                   </p>
                   <p className="text-sm text-text-secondary">
-                    Estado: {txState.status}
+                    Status: {txState.status}
                   </p>
                   {txState.estimatedGas !== null && (
                     <p className="text-sm text-text-secondary">
-                      Gas estimado: {txState.estimatedGas.toString()}
+                      Estimated gas: {txState.estimatedGas.toString()}
                     </p>
                   )}
                   {txState.hash && (
@@ -823,7 +823,7 @@ export const Bowl = () => {
                   )}
                   {txState.sessionId && (
                     <p className="text-xs text-text-tertiary break-all">
-                      Sesion: {txState.sessionId}
+                      Session: {txState.sessionId}
                     </p>
                   )}
                   {txState.error && (

@@ -28,9 +28,9 @@ export const GameSelectorModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Selecciona el tipo de juego</DialogTitle>
+          <DialogTitle>Select game type</DialogTitle>
           <DialogDescription>
-            Elige un juego para iniciar la sesión.
+            Choose a game to start the session.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">

@@ -11,7 +11,7 @@ export default function LoginPage() {
             variant="ghost"
             className="text-text-secondary hover:text-text-primary hover:bg-bg-secondary -ml-2"
           >
-            ← Volver
+            ← Back
           </Button>
         </Link>
       </div>

@@ -59,11 +59,11 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
         });
       } catch (error) {
         // [Agent-Generated] Backend tracking is best-effort for MVP.
-        console.error("No se pudo registrar la sesion:", error);
+        console.error("Failed to register session:", error);
       }
     } catch (error) {
       // [Agent-Generated] Contract errors are handled in the SessionFactory hook.
-      console.error("Error al crear la sesion:", error);
+      console.error("Failed to create session:", error);
     } finally {
       // [Agent-Generated] Keep the coin-drop animation independent from chain timing.
       setIsAnimating(true);

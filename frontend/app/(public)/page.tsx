@@ -16,7 +16,7 @@ export default function PublicHomePage() {
         <div className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-linear-to-r from-primary/30 via-primary-dark/30 to-primary/30 border-2 border-primary/50 backdrop-blur-md shadow-2xl shadow-primary/20 animate-pulse">
           <DiceIcon className="h-10 w-10 text-primary animate-spin-slow" />
           <span className="text-base md:text-lg font-black bg-linear-to-r from-primary via-white to-primary bg-clip-text text-transparent uppercase tracking-widest">
-            Web3 Gaming Platform
+            Web3 Gambling Platform
           </span>
         </div>
 
@@ -27,18 +27,18 @@ export default function PublicHomePage() {
           </h1>
 
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-text-primary leading-tight">
-            Apuesta.{" "}
+            Bet.{" "}
             <span className="bg-linear-to-r from-primary via-primary-dark to-primary bg-clip-text text-transparent animate-gradient">
-              Gana.
+              Win.
             </span>
           </h2>
 
           <p className="text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary">
-            Sin Límites.
+            No Limits.
           </p>
 
           <p className="max-w-2xl mx-auto text-xl md:text-2xl text-text-secondary leading-relaxed mt-8">
-            Apuestas reales en crypto.
+            Real crypto bets.
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export default function PublicHomePage() {
             className="h-16 px-12 text-xl font-bold bg-linear-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-darker transition-all duration-300 shadow-2xl hover:shadow-primary/50 hover:scale-105 transform"
           >
             <Link href="/login">
-              Empieza ya 🎲
+              Start now 🎲
             </Link>
           </Button>
         </div>

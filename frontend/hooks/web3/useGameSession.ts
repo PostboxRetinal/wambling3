@@ -61,17 +61,17 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
   const ensureWalletReady = useCallback(async () => {
     // [Agent-Generated] Require authenticated wallet for writes.
     if (!authenticated) {
-      throw new Error("Conecta tu wallet para continuar.");
+      throw new Error("Connect your wallet to continue.");
     }
 
     const wallet = wallets[0];
     if (!wallet) {
-      throw new Error("No se encontro una wallet activa.");
+      throw new Error("No active wallet found.");
     }
 
     const provider = await wallet.getEthereumProvider();
     if (!provider?.request) {
-      throw new Error("No se pudo acceder al proveedor de la wallet.");
+      throw new Error("Could not access wallet provider.");
     }
 
     return {
@@ -149,7 +149,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
         winner: winner as `0x${string}`,
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error leyendo la sesion.";
+      const message = err instanceof Error ? err.message : "Failed to read session.";
       setError(message);
       setSnapshot(null);
     } finally {
@@ -160,7 +160,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
   const joinOnsite = useCallback(
     async ({ betAmount }: { betAmount: string }) => {
       if (!sessionId || !isUuidV4(sessionId)) {
-        throw new Error("ID de sesion invalido.");
+        throw new Error("Invalid session ID.");
       }
 
       resetActionState();
@@ -177,7 +177,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
 
         const betWei = parseEther(betAmount);
         if (betWei <= BigInt(0)) {
-          throw new Error("La apuesta debe ser mayor a 0.");
+          throw new Error("Bet must be greater than 0.");
         }
 
         const simulation = await publicClient.simulateContract({
@@ -213,7 +213,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
         await refresh();
         return { hash, receipt };
       } catch (err) {
-        const message = err instanceof Error ? err.message : "No se pudo unir.";
+        const message = err instanceof Error ? err.message : "Could not join.";
         setActionState((prev) => ({
           ...prev,
           status: "failed",

@@ -30,7 +30,7 @@ export const PrivyProvider = ({ children }: { children: React.ReactNode }) => {
             },
           },
         },
-        // Configuración de apariencia
+        // Appearance configuration
         appearance: {
           theme: "dark",
           accentColor: "#676FFF",

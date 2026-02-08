@@ -1,4 +1,4 @@
-// [Agent-Generated] Component to display wallet transaction history with sent/received indicators.
+// [AGENT-GENERATED] Component to display wallet transaction history with sent/received indicators.
 "use client";
 
 import { useTransactionHistory } from "@/hooks/web3/useTransactionHistory";
@@ -11,10 +11,10 @@ export const TransactionHistory = () => {
   // [Agent-Generated] Loading state with spinner.
   if (isLoading) {
     return (
-      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-[500px] flex flex-col">
+      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-125 flex flex-col">
         <CardHeader>
           <h3 className="text-xl font-bold text-text-primary">
-            Actividad Reciente
+            Recent Activity
           </h3>
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
@@ -27,10 +27,10 @@ export const TransactionHistory = () => {
   // [Agent-Generated] Error state display.
   if (error) {
     return (
-      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-[500px] flex flex-col">
+      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-125 flex flex-col">
         <CardHeader>
           <h3 className="text-xl font-bold text-text-primary">
-            Actividad Reciente
+            Recent Activity
           </h3>
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
@@ -43,19 +43,17 @@ export const TransactionHistory = () => {
   // [Agent-Generated] Empty state when no transactions found.
   if (transactions.length === 0) {
     return (
-      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-[500px] flex flex-col">
+      <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-125 flex flex-col">
         <CardHeader>
           <h3 className="text-xl font-bold text-text-primary">
-            Actividad Reciente
+            Recent Activity
           </h3>
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4">🎲</div>
-            <p className="text-text-secondary">No hay actividad reciente</p>
-            <p className="text-sm text-text-tertiary mt-2">
-              ¡Comienza a jugar para ver tu historial aquí!
-            </p>
+            <p className="text-text-secondary">No recent activity</p>
+            <p className="text-sm text-text-tertiary mt-2">Start playing to see your history here!</p>
           </div>
         </CardContent>
       </Card>
@@ -64,10 +62,10 @@ export const TransactionHistory = () => {
 
   // [Agent-Generated] Display transaction list with scroll (up to 10 items).
   return (
-    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-[305px] flex flex-col">
-      <CardHeader className="flex-shrink-0">
+    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm mt-6 h-76.25 flex flex-col">
+      <CardHeader className="shrink-0">
         <h3 className="text-xl font-bold text-text-primary">
-          Actividad Reciente
+          Recent Activity
         </h3>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
@@ -94,10 +92,10 @@ export const TransactionHistory = () => {
 
                 <div className="flex flex-col">
                   <span className="font-semibold text-text-primary">
-                    {tx.type === "received" ? "Recibido" : "Enviado"}
+                    {tx.type === "received" ? "Received" : "Sent"}
                   </span>
                   <span className="text-sm text-text-tertiary">
-                    {tx.type === "received" ? "De" : "Para"}:{" "}
+                    {tx.type === "received" ? "From" : "To"}: {" "}
                     {tx.type === "received"
                       ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}`
                       : tx.to
@@ -105,7 +103,7 @@ export const TransactionHistory = () => {
                       : "Contract"}
                   </span>
                   <span className="text-xs text-text-tertiary">
-                    {new Date(tx.timestamp).toLocaleString("es-ES", {
+                    {new Date(tx.timestamp).toLocaleString("en-US", {
                       dateStyle: "short",
                       timeStyle: "short",
                     })}
@@ -128,7 +126,7 @@ export const TransactionHistory = () => {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
                 >
-                  Ver en Etherscan →
+                  View on Etherscan →
                 </a>
               </div>
             </div>
