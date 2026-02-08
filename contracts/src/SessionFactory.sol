@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {GameSession} from "./GameSession.sol";
-import {GameSessionOnSite} from "./GameSessionOnSite.sol";
-
 /// @title SessionFactory
-/// @notice Permanent entry point that deploys minimal proxy sessions and collects fees.
+/// @notice Permanent entry point that records off-chain sessions and escrows wagers.
 contract SessionFactory is Ownable, ReentrancyGuard {
-    using Clones for address;
-
     enum SessionState {
         None,
         Active,
@@ -20,136 +14,124 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         Cancelled
     }
 
-    enum SessionKind {
-        OnChain,
-        OnSite
+    enum GameType {
+        CoinFlip,
+        RockPaperScissors
     }
 
     struct SessionInfo {
         address creator;
+        address opponent;
+        address winner;
         uint256 stake;
-        uint8 maxPlayers;
-        uint256 duration;
-        uint8 gameType;
-        SessionKind kind;
+        GameType gameType;
         SessionState state;
         uint64 createdAt;
     }
 
-    address public immutable implementation;
-    // [Agent-Generated] On-site session implementation
-    address public immutable onSiteImplementation;
-    address public teamWallet;
+    uint256 public constant FEE_BPS = 200; // 2%
+    uint256 public constant BPS_DENOMINATOR = 10_000;
+
+    uint256 public nextSessionId;
     uint256 public totalFees;
 
-    address[] private allSessions;
-    mapping(address => SessionInfo) public sessionInfo;
-    mapping(address => uint256) private sessionIndex;
+    uint256[] private allSessions;
+    mapping(uint256 => SessionInfo) public sessionInfo;
+    mapping(uint256 => uint256) private sessionIndex;
 
     event SessionCreated(
-        address indexed session,
+        uint256 indexed sessionId,
         address indexed creator,
-        SessionKind kind,
         uint8 gameType,
-        uint256 stake,
-        uint8 maxPlayers,
-        uint256 duration
+        uint256 stake
     );
-    event SessionFinalized(address indexed session, SessionState state, GameSession.Resolution resolution);
-    event FeeReceived(address indexed from, uint256 amount);
-    event FeeForwarded(address indexed from, address indexed to, uint256 amount);
+    event SessionJoined(uint256 indexed sessionId, address indexed opponent);
+    event SessionFinalized(uint256 indexed sessionId, SessionState state, address winner, uint256 payout, uint256 fee);
     event FeesWithdrawn(address indexed to, uint256 amount);
-    event SessionRemoved(address indexed session);
-    event TeamWalletUpdated(address indexed wallet);
+    event SessionRemoved(uint256 indexed sessionId);
 
     error InvalidParams();
     error UnknownSession();
     error SessionNotActive();
     error SessionStillActive();
-    error InvalidSessionKind();
-    error NotArbiter();
-    // [Agent-Generated] Clearer error when the game session is not resolved yet.
-    error GameSessionNotResolved();
+    error AlreadyJoined();
+    error SameAsCreator();
+    error StakeMismatch();
+    error InvalidWinner();
+    error OpponentMissing();
 
-    constructor() Ownable(msg.sender) {
-        implementation = address(new GameSession());
-        onSiteImplementation = address(new GameSessionOnSite());
-        teamWallet = msg.sender;
+    constructor() Ownable(msg.sender) {}
+
+    /// @notice Create a new off-chain session by staking the wager in escrow.
+    function createSession(uint256 stake, GameType gameType) external payable returns (uint256 sessionId) {
+        if (stake == 0 || msg.value != stake) revert InvalidParams();
+
+        sessionId = ++nextSessionId;
+        sessionInfo[sessionId] = SessionInfo({
+            creator: msg.sender,
+            opponent: address(0),
+            winner: address(0),
+            stake: stake,
+            gameType: gameType,
+            state: SessionState.Active,
+            createdAt: uint64(block.timestamp)
+        });
+
+        allSessions.push(sessionId);
+        sessionIndex[sessionId] = allSessions.length - 1;
+
+        emit SessionCreated(sessionId, msg.sender, uint8(gameType), stake);
     }
 
-    /// @notice Deploy a new game session as a minimal proxy clone.
-    function createSession(uint256 minBet, uint8 maxPlayers, uint256 duration, GameSession.GameType gameType) external returns (address session) {
-        if (minBet == 0 || duration == 0 || maxPlayers != 2) revert InvalidParams();
-
-        session = implementation.clone();
-        GameSession(session).initialize(address(this), minBet, maxPlayers, duration, gameType);
-
-        _registerSession(session, msg.sender, minBet, maxPlayers, duration, uint8(gameType), SessionKind.OnChain);
-    }
-
-    /// @notice Deploy a new in-person session as a minimal proxy clone.
-    function createOnSiteSession(
-        uint256 stake,
-        address arbiter,
-        GameSessionOnSite.GameType gameType
-    ) external payable returns (address session) {
-        if (stake == 0 || msg.value != stake || arbiter == address(0)) revert InvalidParams();
-
-        session = onSiteImplementation.clone();
-        GameSessionOnSite(session).initialize{value: msg.value}(address(this), msg.sender, arbiter, stake, gameType);
-
-        _registerSession(session, msg.sender, stake, 2, 0, uint8(gameType), SessionKind.OnSite);
-    }
-
-    /// @notice Finalize a session after it has been resolved on-chain.
-    function finalizeSession(address session) external {
-        SessionInfo storage info = sessionInfo[session];
+    /// @notice Join an existing session by matching the creator's stake.
+    function joinSession(uint256 sessionId) external payable {
+        SessionInfo storage info = sessionInfo[sessionId];
         if (info.state == SessionState.None) revert UnknownSession();
         if (info.state != SessionState.Active) revert SessionNotActive();
-        if (info.kind != SessionKind.OnChain) revert InvalidSessionKind();
+        if (info.opponent != address(0)) revert AlreadyJoined();
+        if (msg.sender == info.creator) revert SameAsCreator();
+        if (msg.value != info.stake) revert StakeMismatch();
 
-        // [Agent-Generated] Avoid early revert from GameSession by checking its state and timeout.
-        GameSession.SessionState gsState = GameSession(session).sessionState();
-        if (gsState == GameSession.SessionState.Active) {
-            uint256 deadline = GameSession(session).createdAt() + GameSession(session).duration();
-            if (block.timestamp >= deadline) {
-                GameSession(session).claimTimeoutResolution();
-            } else {
-                revert GameSessionNotResolved();
-            }
-        } else if (gsState != GameSession.SessionState.Resolved) {
-            revert GameSessionNotResolved();
-        }
-
-        GameSession.Resolution resolution = GameSession(session).finalizeFromFactory();
-
-        if (resolution == GameSession.Resolution.Cancel) {
-            info.state = SessionState.Cancelled;
-        } else {
-            info.state = SessionState.Finalized;
-        }
-
-        emit SessionFinalized(session, info.state, resolution);
+        info.opponent = msg.sender;
+        emit SessionJoined(sessionId, msg.sender);
     }
 
-    /// @notice Finalize an in-person session after arbiter selection.
-    function finalizeSession(address session, address winner) external {
-        SessionInfo storage info = sessionInfo[session];
+    /// @notice Finalize a session after arbiter selection.
+    function finalizeSession(uint256 sessionId, address winner) external nonReentrant onlyOwner {
+        SessionInfo storage info = sessionInfo[sessionId];
         if (info.state == SessionState.None) revert UnknownSession();
         if (info.state != SessionState.Active) revert SessionNotActive();
-        if (info.kind != SessionKind.OnSite) revert InvalidSessionKind();
-
-        address arbiter = GameSessionOnSite(session).arbiter();
-        if (msg.sender != arbiter) revert NotArbiter();
-
-        GameSessionOnSite(session).finalizeFromFactory(winner);
+        if (info.opponent == address(0)) revert OpponentMissing();
+        if (winner != info.creator && winner != info.opponent) revert InvalidWinner();
 
         info.state = SessionState.Finalized;
-        emit SessionFinalized(session, info.state, GameSession.Resolution.Winner);
+        info.winner = winner;
+
+        uint256 pot = info.stake * 2;
+        uint256 fee = (pot * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 payout = pot - fee;
+        totalFees += fee;
+
+        _sendValue(winner, payout);
+        emit SessionFinalized(sessionId, info.state, winner, payout, fee);
+    }
+
+    /// @notice Cancel a session before an opponent joins.
+    function cancelSession(uint256 sessionId) external nonReentrant {
+        SessionInfo storage info = sessionInfo[sessionId];
+        if (info.state == SessionState.None) revert UnknownSession();
+        if (info.state != SessionState.Active) revert SessionNotActive();
+        if (msg.sender != info.creator) revert InvalidParams();
+        if (info.opponent != address(0)) revert AlreadyJoined();
+
+        info.state = SessionState.Cancelled;
+        info.winner = address(0);
+        _sendValue(info.creator, info.stake);
+        emit SessionFinalized(sessionId, info.state, address(0), info.stake, 0);
     }
 
     /// @notice View all currently active sessions.
-    function getActiveSessions() external view returns (address[] memory sessions) {
+    function getActiveSessions() external view returns (uint256[] memory sessions) {
         uint256 count;
         for (uint256 i = 0; i < allSessions.length; i++) {
             if (sessionInfo[allSessions[i]].state == SessionState.Active) {
@@ -157,7 +139,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
             }
         }
 
-        sessions = new address[](count);
+        sessions = new uint256[](count);
         uint256 idx;
         for (uint256 i = 0; i < allSessions.length; i++) {
             if (sessionInfo[allSessions[i]].state == SessionState.Active) {
@@ -167,35 +149,30 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     }
 
     /// @notice Return all deployed sessions.
-    function getAllSessions() external view returns (address[] memory) {
+    function getAllSessions() external view returns (uint256[] memory) {
         return allSessions;
     }
 
     /// @notice Remove a non-active session from the registry.
-    function removeSession(address session) external onlyOwner {
-        SessionInfo storage info = sessionInfo[session];
+    function removeSession(uint256 sessionId) external onlyOwner {
+        SessionInfo storage info = sessionInfo[sessionId];
         if (info.state == SessionState.None) revert UnknownSession();
         if (info.state == SessionState.Active) revert SessionStillActive();
 
-        uint256 index = sessionIndex[session];
+        uint256 index = sessionIndex[sessionId];
         uint256 lastIndex = allSessions.length - 1;
 
         if (index != lastIndex) {
-            address lastSession = allSessions[lastIndex];
+            uint256 lastSession = allSessions[lastIndex];
             allSessions[index] = lastSession;
             sessionIndex[lastSession] = index;
         }
 
         allSessions.pop();
-        delete sessionIndex[session];
-        delete sessionInfo[session];
+        delete sessionIndex[sessionId];
+        delete sessionInfo[sessionId];
 
-        emit SessionRemoved(session);
-    }
-
-    /// @notice Receives the 2% fee from sessions.
-    function recordFee() external payable {
-        _handleFee(msg.sender, msg.value);
+        emit SessionRemoved(sessionId);
     }
 
     /// @notice Withdraw accumulated fees.
@@ -207,60 +184,9 @@ contract SessionFactory is Ownable, ReentrancyGuard {
         emit FeesWithdrawn(to, amount);
     }
 
-    /// @notice Update the designated team wallet for on-site fee forwarding.
-    function setTeamWallet(address wallet) external onlyOwner {
-        if (wallet == address(0)) revert InvalidParams();
-        teamWallet = wallet;
-        emit TeamWalletUpdated(wallet);
-    }
-
-    receive() external payable {
-        _handleFee(msg.sender, msg.value);
-    }
-
-    function _registerSession(
-        address session,
-        address creator,
-        uint256 stake,
-        uint8 maxPlayers,
-        uint256 duration,
-        uint8 gameType,
-        SessionKind kind
-    ) internal {
-        sessionInfo[session] = SessionInfo({
-            creator: creator,
-            stake: stake,
-            maxPlayers: maxPlayers,
-            duration: duration,
-            gameType: gameType,
-            kind: kind,
-            state: SessionState.Active,
-            createdAt: uint64(block.timestamp)
-        });
-
-        allSessions.push(session);
-        sessionIndex[session] = allSessions.length - 1;
-
-        emit SessionCreated(session, creator, kind, gameType, stake, maxPlayers, duration);
-    }
-
-    function _handleFee(address from, uint256 amount) internal {
+    function _sendValue(address to, uint256 amount) internal {
         if (amount == 0) return;
-
-        SessionInfo storage info = sessionInfo[from];
-        if (info.state != SessionState.None && info.kind == SessionKind.OnSite) {
-            _forwardFee(amount);
-            emit FeeForwarded(from, teamWallet, amount);
-            return;
-        }
-
-        totalFees += amount;
-        emit FeeReceived(from, amount);
-    }
-
-    function _forwardFee(uint256 amount) internal {
-        if (teamWallet == address(0)) revert InvalidParams();
-        (bool success, ) = teamWallet.call{value: amount}("");
-        require(success, "Fee transfer failed");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Transfer failed");
     }
 }

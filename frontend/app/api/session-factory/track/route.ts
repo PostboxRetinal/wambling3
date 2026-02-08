@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import {
   createPublicClient,
   http,
-  isAddress,
   type Hex,
 } from "viem";
 import {
@@ -17,15 +16,15 @@ export async function POST(request: Request) {
   try {
     // [Agent-Generated] Parse and validate incoming payload.
     const body = await request.json();
-    const sessionAddress = body?.sessionAddress as string | undefined;
+    const sessionId = body?.sessionId as string | undefined;
     const txHash = body?.txHash as string | undefined;
     const gameId = body?.gameId as string | undefined;
     const mode = body?.mode as string | undefined;
     const betAmount = body?.betAmount as string | undefined;
 
-    if (sessionAddress && !isAddress(sessionAddress)) {
+    if (sessionId && !/^[0-9]+$/.test(sessionId)) {
       return NextResponse.json(
-        { ok: false, error: "Session address invalida." },
+        { ok: false, error: "Session ID invalido." },
         { status: 400 },
       );
     }
@@ -50,13 +49,13 @@ export async function POST(request: Request) {
       : null;
 
     // [Agent-Generated] Try to read session info if the address is provided.
-    const sessionInfoRaw: any = sessionAddress
+    const sessionInfoRaw: any = sessionId
       ? await publicClient
           .readContract({
             address: assertSessionFactoryAddress(),
             abi: SESSION_FACTORY_ABI,
             functionName: "sessionInfo",
-            args: [sessionAddress as `0x${string}`],
+            args: [BigInt(sessionId)],
           })
           .catch(() => null)
       : null;
@@ -65,20 +64,19 @@ export async function POST(request: Request) {
     const sessionInfo = sessionInfoRaw
       ? {
           creator: sessionInfoRaw.creator ?? sessionInfoRaw[0],
-          stake: String(sessionInfoRaw.stake ?? sessionInfoRaw[1]),
-          maxPlayers: Number(sessionInfoRaw.maxPlayers ?? sessionInfoRaw[2]),
-          duration: String(sessionInfoRaw.duration ?? sessionInfoRaw[3]),
+          opponent: sessionInfoRaw.opponent ?? sessionInfoRaw[1],
+          winner: sessionInfoRaw.winner ?? sessionInfoRaw[2],
+          stake: String(sessionInfoRaw.stake ?? sessionInfoRaw[3]),
           gameType: Number(sessionInfoRaw.gameType ?? sessionInfoRaw[4]),
-          kind: Number(sessionInfoRaw.kind ?? sessionInfoRaw[5]),
-          state: Number(sessionInfoRaw.state ?? sessionInfoRaw[6]),
-          createdAt: String(sessionInfoRaw.createdAt ?? sessionInfoRaw[7]),
+          state: Number(sessionInfoRaw.state ?? sessionInfoRaw[5]),
+          createdAt: String(sessionInfoRaw.createdAt ?? sessionInfoRaw[6]),
         }
       : null;
 
     return NextResponse.json({
       ok: true,
       data: {
-        sessionAddress,
+        sessionId,
         txHash,
         gameId,
         mode,

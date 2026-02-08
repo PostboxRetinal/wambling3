@@ -1,11 +1,6 @@
 // [Agent-Generated] Bowl state + SessionFactory integration.
-import { useState, useCallback, useMemo } from "react";
-import { isAddress } from "viem";
-import {
-  DEFAULT_SESSION_DURATION_SECONDS,
-  type GameId,
-  type GameMode,
-} from "@/lib/contracts/sessionFactory";
+import { useState, useCallback } from "react";
+import { type GameId, type GameMode } from "@/lib/contracts/sessionFactory";
 import { useSessionFactory } from "@/hooks/web3/useSessionFactory";
 
 interface Coin {
@@ -20,8 +15,6 @@ type UseBowlParams = {
 
 export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
   const [betAmount, setBetAmount] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState("30");
-  const [arbiterAddress, setArbiterAddress] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
   const [coins, setCoins] = useState<Coin[]>([]);
 
@@ -38,16 +31,6 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     setBetAmount(amount);
   }, []);
 
-  const durationSeconds = useMemo(() => {
-    // [Agent-Generated] Convert duration input (minutes) into seconds for the contract.
-    const minutes = Number(durationMinutes);
-    if (Number.isNaN(minutes) || minutes <= 0) return 0;
-    return Math.round(minutes * 60);
-  }, [durationMinutes]);
-
-  const isDurationValid = durationSeconds > 0;
-  const isArbiterValid =
-    selectedMode === "onsite" ? isAddress(arbiterAddress) : true;
 
   const handleBet = useCallback(async () => {
     if (!betAmount || parseFloat(betAmount) <= 0) {
@@ -60,14 +43,8 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     try {
       // [Agent-Generated] Execute SessionFactory transaction based on the selected mode.
       const result = await createSession({
-        mode: selectedMode,
         gameId: selectedGame,
         betAmount,
-        durationSeconds:
-          selectedMode === "onchain"
-            ? durationSeconds || DEFAULT_SESSION_DURATION_SECONDS
-            : undefined,
-        arbiterAddress: selectedMode === "onsite" ? arbiterAddress : undefined,
       });
 
       // [Agent-Generated] Notify backend of the new session for tracking.
@@ -76,7 +53,7 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sessionAddress: result.sessionAddress,
+            sessionId: result.sessionId,
             txHash: result.hash,
             gameId: selectedGame,
             mode: selectedMode,
@@ -102,10 +79,8 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
       }, 1000);
     }
   }, [
-    arbiterAddress,
     betAmount,
     createSession,
-    durationSeconds,
     resetTxState,
     selectedGame,
     selectedMode,
@@ -115,18 +90,11 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     setBetAmount("0.1");
   }, []);
 
-  const isBetValid =
-    betAmount &&
-    parseFloat(betAmount) > 0 &&
-    (selectedMode === "onchain" ? isDurationValid : isArbiterValid);
+  const isBetValid = betAmount && parseFloat(betAmount) > 0;
 
   return {
     betAmount,
     setBetAmount,
-    durationMinutes,
-    setDurationMinutes,
-    arbiterAddress,
-    setArbiterAddress,
     isAnimating,
     coins,
     quickAmounts,
@@ -135,7 +103,5 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     handleMaxBet,
     isBetValid,
     txState,
-    isDurationValid,
-    isArbiterValid,
   };
 };

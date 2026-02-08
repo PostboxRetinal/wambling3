@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui";
 
-export type GameMode = "onchain" | "onsite";
+export type GameMode = "offchain";
 
 export type GameSelection = {
   id: string;
@@ -21,26 +21,14 @@ const GAME_OPTIONS = [
   {
     id: "coinflip",
     label: "Coin Flip",
-    description: "Apuesta rápida al cara o sello.",
-    mode: "onchain" as const,
+    description: "Apuesta rápida al cara o sello (off-chain).",
+    mode: "offchain" as const,
   },
   {
     id: "rps",
     label: "Rock • Paper • Scissors",
-    description: "Piedra, papel o tijera en la cadena.",
-    mode: "onchain" as const,
-  },
-  {
-    id: "chess",
-    label: "Chess",
-    description: "Partida on-site con árbitro.",
-    mode: "onsite" as const,
-  },
-  {
-    id: "checkers",
-    label: "Checkers",
-    description: "Damas on-site con árbitro.",
-    mode: "onsite" as const,
+    description: "Piedra, papel o tijera (off-chain).",
+    mode: "offchain" as const,
   },
 ];
 
@@ -80,7 +68,7 @@ export const GameSelectorModal = ({
                 </span>
               </span>
               <span className="text-xs text-text-secondary">
-                {game.mode === "onchain" ? "On-chain" : "On-site"}
+                Off-chain
               </span>
             </Button>
           ))}

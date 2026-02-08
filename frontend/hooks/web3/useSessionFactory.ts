@@ -9,7 +9,6 @@ import {
   custom,
   decodeEventLog,
   http,
-  isAddress,
   parseEther,
   type EIP1193Provider,
   type Hex,
@@ -23,7 +22,6 @@ import {
   SESSION_FACTORY_CHAIN,
   SESSION_FACTORY_RPC_URL,
   type GameId,
-  type GameMode,
 } from "@/lib/contracts/sessionFactory";
 
 export type SessionFactoryTxStatus =
@@ -39,15 +37,12 @@ type SessionFactoryTxState = {
   error: string | null;
   receipt: TransactionReceipt | null;
   estimatedGas: bigint | null;
-  sessionAddress: `0x${string}` | null;
+  sessionId: string | null;
 };
 
 type CreateSessionParams = {
-  mode: GameMode;
   gameId: GameId;
   betAmount: string;
-  durationSeconds?: number;
-  arbiterAddress?: string;
 };
 
 const createInitialTxState = (): SessionFactoryTxState => ({
@@ -56,7 +51,7 @@ const createInitialTxState = (): SessionFactoryTxState => ({
   error: null,
   receipt: null,
   estimatedGas: null,
-  sessionAddress: null,
+  sessionId: null,
 });
 
 export const useSessionFactory = () => {
@@ -142,8 +137,8 @@ export const useSessionFactory = () => {
   }, []);
 
   const decodeSessionCreated = useCallback(
-    (receipt: TransactionReceipt): `0x${string}` | null => {
-      // [Agent-Generated] Extract the new session address from event logs.
+    (receipt: TransactionReceipt): string | null => {
+      // [Agent-Generated] Extract the new session id from event logs.
       for (const log of receipt.logs) {
         try {
           const decoded = decodeEventLog({
@@ -154,13 +149,13 @@ export const useSessionFactory = () => {
 
           if (decoded.eventName === "SessionCreated") {
             const args = decoded.args as
-              | { session?: `0x${string}` }
+              | { sessionId?: bigint }
               | readonly unknown[]
               | undefined;
 
-            if (args && typeof args === "object" && "session" in args) {
-              const session = (args as { session?: `0x${string}` }).session;
-              if (session) return session;
+            if (args && typeof args === "object" && "sessionId" in args) {
+              const sessionId = (args as { sessionId?: bigint }).sessionId;
+              if (sessionId !== undefined) return sessionId.toString();
             }
           }
         } catch (error) {
@@ -175,18 +170,12 @@ export const useSessionFactory = () => {
   );
 
   const createSession = useCallback(
-    async ({
-      mode,
-      gameId,
-      betAmount,
-      durationSeconds,
-      arbiterAddress,
-    }: CreateSessionParams) => {
+    async ({ gameId, betAmount }: CreateSessionParams) => {
       setTxState((prev) => ({
         ...prev,
         status: "signing",
         error: null,
-        sessionAddress: null,
+        sessionId: null,
       }));
 
       try {
@@ -213,29 +202,9 @@ export const useSessionFactory = () => {
 
         const gameType = GAME_TYPE_MAP[gameId];
 
-        let functionName: "createSession" | "createOnSiteSession" =
-          "createSession";
-        let args: readonly unknown[] = [];
-        let value: bigint | undefined;
-
-        if (mode === "onchain") {
-          // [Agent-Generated] Validate on-chain session parameters.
-          if (!durationSeconds || durationSeconds <= 0) {
-            throw new Error("La duracion debe ser mayor a 0.");
-          }
-
-          functionName = "createSession";
-          args = [betWei, 2, BigInt(durationSeconds), gameType];
-        } else {
-          // [Agent-Generated] Validate on-site session parameters.
-          if (!arbiterAddress || !isAddress(arbiterAddress)) {
-            throw new Error("Ingresa una direccion de arbitro valida.");
-          }
-
-          functionName = "createOnSiteSession";
-          args = [betWei, arbiterAddress, gameType];
-          value = betWei;
-        }
+        const functionName = "createSession";
+        const args = [betWei, gameType] as const;
+        const value = betWei;
 
         // [Agent-Generated] Simulate to validate and build request.
         const simulation = await publicClient.simulateContract({
@@ -280,24 +249,24 @@ export const useSessionFactory = () => {
           confirmations: 1,
         });
 
-        const sessionAddress = decodeSessionCreated(receipt);
+        const sessionId = decodeSessionCreated(receipt);
 
         setTxState((prev) => ({
           ...prev,
           status: "confirmed",
           receipt,
-          sessionAddress,
+          sessionId,
         }));
 
         toast.success("Sesion creada", {
-          description: sessionAddress
-            ? `Sesion: ${sessionAddress}`
+          description: sessionId
+            ? `Sesion: ${sessionId}`
             : "Sesion confirmada en la red.",
         });
 
         return {
           receipt,
-          sessionAddress,
+          sessionId,
           hash,
         };
       } catch (error) {

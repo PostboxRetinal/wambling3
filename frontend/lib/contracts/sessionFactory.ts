@@ -54,16 +54,11 @@ export const assertSessionFactoryAddress = (): `0x${string}` => {
 };
 
 // [Agent-Generated] UI identifiers for supported game types.
-export type GameId = "coinflip" | "rps" | "chess" | "checkers";
-export type GameMode = "onchain" | "onsite";
+export type GameId = "coinflip" | "rps";
+export type GameMode = "offchain";
 
 // [Agent-Generated] Enum alignment between UI and contracts.
 export const GAME_TYPE_MAP: Record<GameId, number> = {
   coinflip: 0,
   rps: 1,
-  chess: 0,
-  checkers: 1,
 };
-
-// [Agent-Generated] Default on-chain session duration for MVP (seconds).
-export const DEFAULT_SESSION_DURATION_SECONDS = 1800;
