@@ -13,15 +13,8 @@ import type { GameSelectorModalProps } from "@/types/ui.types";
 // [Agent-Generated] Contract-aligned game options for UI selection.
 const GAME_OPTIONS = [
   {
-    id: "coinflip",
-    label: "Coin Flip",
-    description: "Apuesta rápida al cara o sello (off-chain).",
-    mode: "offchain" as const,
-  },
-  {
     id: "rps",
     label: "Rock • Paper • Scissors",
-    description: "Piedra, papel o tijera (off-chain).",
     mode: "offchain" as const,
   },
 ];
@@ -51,15 +44,13 @@ export const GameSelectorModal = ({
             >
               <span className="flex flex-col items-start">
                 <span className="font-semibold">{game.label}</span>
-                <span className="text-xs text-text-tertiary">
-                  {game.description}
-                </span>
-              </span>
-              <span className="text-xs text-text-secondary">
-                Off-chain
               </span>
             </Button>
           ))}
+
+          <DialogDescription className="mt-4 text-sm text-text-secondary italic text-center">
+            more games coming soon...
+          </DialogDescription>
         </div>
       </DialogContent>
     </Dialog>

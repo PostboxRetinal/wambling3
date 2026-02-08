@@ -1,8 +1,20 @@
 "use client";
 
 import { PrivyProvider as PrivyProviderBase } from "@privy-io/react-auth";
+import { useEffect, useState } from "react";
 
 export const PrivyProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // [Agent-Generated] Prevent SSR hydration issues by waiting for client mount.
+  if (!isMounted) {
+    return <>{children}</>;
+  }
+
   return (
     <PrivyProviderBase
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}

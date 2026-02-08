@@ -1,7 +1,8 @@
 import "@/styles/globals.css";
-import { PrivyProvider } from "./providers/privy-provider";
-import { Web3Provider } from "./providers/web3-provider";
 import { Toaster } from "sonner";
+import { ClientProviders } from "./providers/client-providers";
+
+// [Agent-Generated] ClientProviders is a Client Component with mount guards to prevent SSR errors.
 
 export const metadata = {
   title: "Wambling3",
@@ -19,9 +20,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <PrivyProvider>
-          <Web3Provider>{children}</Web3Provider>
-        </PrivyProvider>
+        <ClientProviders>{children}</ClientProviders>
         <Toaster position="top-center" richColors />
       </body>
     </html>
