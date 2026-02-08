@@ -87,7 +87,7 @@ export const WalletBalance = () => {
   };
 
   return (
-    <Card className="w-full border-border-primary bg-gradient-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm h-[270px] flex flex-col">
+    <Card className="w-full border-border-primary bg-linear-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm h-67.5 flex flex-col">
       <CardContent className="pt-6 flex-1">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between pb-3 border-b border-border-primary/30">
@@ -121,7 +121,7 @@ export const WalletBalance = () => {
                 value={selectedChain.id.toString()}
                 onValueChange={handleChainChange}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,7 +152,7 @@ export const WalletBalance = () => {
                   </div>
                 ) : (
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+                    <span className="text-3xl font-bold bg-linear-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                       {formatBalance(balance)}
                     </span>
                     <span className="text-lg font-semibold text-text-secondary">
@@ -162,11 +162,11 @@ export const WalletBalance = () => {
                 )}
               </div>
             </div>
-            <div className="flex flex-col w-[200px] items-end justify-end flex-1 gap-3">
+            <div className="flex flex-col w-50 items-end justify-end flex-1 gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="border-border-primary w-[200px] bg-bg-tertiary text-text-primary hover:bg-primary-dark"
+                className="border-border-primary w-50 bg-bg-tertiary text-text-primary hover:bg-primary-dark"
                 onClick={handleFundWallet}
                 disabled={!ready || !authenticated || !address || isFunding}
               >

@@ -19,7 +19,7 @@ export const StartBowl = () => {
   };
 
   return (
-    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm h-[270px] flex flex-col">
+    <Card className="border-border-primary bg-bg-secondary/80 backdrop-blur-sm h-67.5 flex flex-col">
       <CardHeader>
         <h3 className="text-2xl font-bold text-text-primary">Bowl</h3>
       </CardHeader>
