@@ -35,7 +35,7 @@ export type RpsGameTxState = {
   error: string | null;
   receipt: TransactionReceipt | null;
   gameId: string | null;
-  action: "create" | "join" | "commit" | "reveal" | null;
+  action: "create" | "join" | "commit" | "reveal" | "claim" | "claim-timeout" | null;
 };
 
 const createInitialTxState = (): RpsGameTxState => ({
@@ -337,11 +337,19 @@ export const useRpsGame = () => {
     [ensureCorrectChain, ensureWalletReady, publicClient],
   );
 
-  const normalizeSalt = (salt: string): `0x${string}` => {
-    if (isHex(salt) && salt.length === 66) {
-      return salt as `0x${string}`;
+  const normalizeSalt = (salt: unknown): `0x${string}` => {
+    // [AGENT-GENERATED] Defensive normalization to avoid undefined-length errors.
+    if (typeof salt !== "string") {
+      throw new Error("Salt is required.");
     }
-    return keccak256(toBytes(salt)) as `0x${string}`;
+    const trimmed = salt.trim();
+    if (!trimmed) {
+      throw new Error("Salt is required.");
+    }
+    if (isHex(trimmed) && trimmed.length === 66) {
+      return trimmed as `0x${string}`;
+    }
+    return keccak256(toBytes(trimmed)) as `0x${string}`;
   };
 
   const moveToEnum = (move: "rock" | "paper" | "scissors"): number => {
@@ -352,6 +360,8 @@ export const useRpsGame = () => {
         return 2;
       case "scissors":
         return 3;
+      default:
+        throw new Error("Move must be rock, paper, or scissors.");
     }
   };
 
@@ -375,12 +385,18 @@ export const useRpsGame = () => {
           throw new Error("Game ID must be a valid number.");
         }
 
-        if (typeof salt !== "string" || salt.trim().length === 0) {
-          throw new Error("Salt is required.");
-        }
-
         const saltBytes32 = normalizeSalt(salt);
+        if (
+          typeof saltBytes32 !== "string" ||
+          saltBytes32.length !== 66 ||
+          !isHex(saltBytes32)
+        ) {
+          throw new Error("Salt must resolve to a 32-byte hex value.");
+        }
         const moveEnum = moveToEnum(move);
+        if (!Number.isInteger(moveEnum)) {
+          throw new Error("Move must be rock, paper, or scissors.");
+        }
         const commitment = keccak256(
           encodePacked({
             types: ["uint8", "bytes32"],
@@ -468,12 +484,18 @@ export const useRpsGame = () => {
           throw new Error("Game ID must be a valid number.");
         }
 
-        if (typeof salt !== "string" || salt.trim().length === 0) {
-          throw new Error("Salt is required.");
-        }
-
         const saltBytes32 = normalizeSalt(salt);
+        if (
+          typeof saltBytes32 !== "string" ||
+          saltBytes32.length !== 66 ||
+          !isHex(saltBytes32)
+        ) {
+          throw new Error("Salt must resolve to a 32-byte hex value.");
+        }
         const moveEnum = moveToEnum(move);
+        if (!Number.isInteger(moveEnum)) {
+          throw new Error("Move must be rock, paper, or scissors.");
+        }
 
         const { provider, address } = await ensureWalletReady();
         await ensureCorrectChain(provider as EIP1193Provider);
@@ -535,6 +557,172 @@ export const useRpsGame = () => {
     [ensureCorrectChain, ensureWalletReady, publicClient],
   );
 
+  const claimPrize = useCallback(
+    async ({ escrowAddress, gameId, signature }: { escrowAddress: string; gameId: string; signature: string }) => {
+      // [AGENT-GENERATED] Claim jackpot with referee signature.
+      setTxState((prev) => ({
+        ...prev,
+        status: "signing",
+        error: null,
+        gameId: null,
+        action: "claim",
+      }));
+
+      try {
+        if (!isAddress(escrowAddress)) {
+          throw new Error("Escrow address is invalid.");
+        }
+
+        const parsedGameId = Number(gameId);
+        if (!Number.isFinite(parsedGameId) || parsedGameId < 0) {
+          throw new Error("Game ID must be a valid number.");
+        }
+
+        if (!signature || typeof signature !== "string" || !isHex(signature)) {
+          throw new Error("Referee signature is required.");
+        }
+
+        const { provider, address } = await ensureWalletReady();
+        await ensureCorrectChain(provider as EIP1193Provider);
+
+        const walletClient = createWalletClient({
+          chain: SESSION_FACTORY_CHAIN,
+          transport: custom(provider),
+        });
+
+        const simulation = await publicClient.simulateContract({
+          address: escrowAddress as `0x${string}`,
+          abi: RPS_ABI,
+          functionName: "claimPrize",
+          args: [BigInt(parsedGameId), signature as `0x${string}`],
+          account: address,
+        });
+
+        const hash = await walletClient.writeContract({
+          ...simulation.request,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "pending",
+          hash,
+          action: "claim",
+        }));
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 1,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "confirmed",
+          receipt,
+          gameId: parsedGameId.toString(),
+          action: "claim",
+        }));
+
+        return { hash, receipt };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not claim the jackpot.";
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "failed",
+          error: message,
+          action: "claim",
+        }));
+
+        throw error;
+      }
+    },
+    [ensureCorrectChain, ensureWalletReady, publicClient],
+  );
+
+  const claimPrizeTimeout = useCallback(
+    async ({ escrowAddress, gameId }: { escrowAddress: string; gameId: string }) => {
+      // [AGENT-GENERATED] Claim jackpot after referee timeout.
+      setTxState((prev) => ({
+        ...prev,
+        status: "signing",
+        error: null,
+        gameId: null,
+        action: "claim-timeout",
+      }));
+
+      try {
+        if (!isAddress(escrowAddress)) {
+          throw new Error("Escrow address is invalid.");
+        }
+
+        const parsedGameId = Number(gameId);
+        if (!Number.isFinite(parsedGameId) || parsedGameId < 0) {
+          throw new Error("Game ID must be a valid number.");
+        }
+
+        const { provider, address } = await ensureWalletReady();
+        await ensureCorrectChain(provider as EIP1193Provider);
+
+        const walletClient = createWalletClient({
+          chain: SESSION_FACTORY_CHAIN,
+          transport: custom(provider),
+        });
+
+        const simulation = await publicClient.simulateContract({
+          address: escrowAddress as `0x${string}`,
+          abi: RPS_ABI,
+          functionName: "claimPrizeTimeout",
+          args: [BigInt(parsedGameId)],
+          account: address,
+        });
+
+        const hash = await walletClient.writeContract({
+          ...simulation.request,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "pending",
+          hash,
+          action: "claim-timeout",
+        }));
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 1,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "confirmed",
+          receipt,
+          gameId: parsedGameId.toString(),
+          action: "claim-timeout",
+        }));
+
+        return { hash, receipt };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not claim the jackpot.";
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "failed",
+          error: message,
+          action: "claim-timeout",
+        }));
+
+        throw error;
+      }
+    },
+    [ensureCorrectChain, ensureWalletReady, publicClient],
+  );
+
   return {
     txState,
     resetTxState,
@@ -542,5 +730,7 @@ export const useRpsGame = () => {
     joinGame,
     commitMove,
     revealMove,
+    claimPrize,
+    claimPrizeTimeout,
   };
 };

@@ -76,6 +76,8 @@ export const Bowl = () => {
   const [ownerAddress, setOwnerAddress] = useState<string | null>(null);
   const [isOwnerLoading, setIsOwnerLoading] = useState(false);
   const [showAdminTools, setShowAdminTools] = useState(false);
+  const [localGameCounter, setLocalGameCounter] = useState(0);
+  const [lastCountedGameId, setLastCountedGameId] = useState<string | null>(null);
 
   const {
     snapshot,
@@ -96,6 +98,8 @@ export const Bowl = () => {
     joinGame,
     commitMove,
     revealMove,
+    claimPrize,
+    claimPrizeTimeout,
   } = useRpsGame();
 
   const {
@@ -216,6 +220,10 @@ export const Bowl = () => {
     isRpsSubmitting && rpsTxState.action === "commit";
   const isRpsRevealSubmitting =
     isRpsSubmitting && rpsTxState.action === "reveal";
+  const isRpsClaimSubmitting =
+    isRpsSubmitting && rpsTxState.action === "claim";
+  const isRpsClaimTimeoutSubmitting =
+    isRpsSubmitting && rpsTxState.action === "claim-timeout";
   const isBestOfValid = bestOf >= 3 && bestOf <= 9 && bestOf % 2 === 1;
   const canCreateRpsGame =
     isEscrowValid &&
@@ -225,7 +233,7 @@ export const Bowl = () => {
     !isOverBalance &&
     !isRpsSubmitting;
 
-  const isRefereeLocked = !!activeEscrow || !!activeGameId || !!txState.cloneAddress;
+  const isRefereeLocked = !!activeGameId;
   const lockedFieldClass =
     "text-sm bg-bg-tertiary border-border-primary text-text-primary opacity-60 cursor-not-allowed";
   const editableFieldClass =
@@ -270,6 +278,22 @@ export const Bowl = () => {
     isPlayMoveValid &&
     isPlaySaltValid &&
     !isRpsRevealSubmitting;
+
+  const claimEscrow = activeEscrow || refEscrowAddress;
+  const claimGameId = activeGameId || refGameId;
+  const isClaimEscrowValid = !!claimEscrow && isAddress(claimEscrow);
+  const isClaimGameIdValid = claimGameId !== "" && Number.isFinite(Number(claimGameId));
+  const canClaimPrize =
+    isClaimEscrowValid &&
+    isClaimGameIdValid &&
+    !!refereeState.signature &&
+    !isRpsClaimSubmitting &&
+    !isRpsSubmitting;
+  const canClaimTimeout =
+    isClaimEscrowValid &&
+    isClaimGameIdValid &&
+    !isRpsClaimTimeoutSubmitting &&
+    !isRpsSubmitting;
 
   const handleMaxBetWithBalance = () => {
     if (!hasBalance) return;
@@ -347,6 +371,25 @@ export const Bowl = () => {
       gameId: playGameId,
       move: playMove,
       salt: playSalt,
+    });
+  };
+
+  const handleClaimPrize = async () => {
+    if (!canClaimPrize || !refereeState.signature) return;
+    resetRpsTxState();
+    await claimPrize({
+      escrowAddress: claimEscrow,
+      gameId: claimGameId,
+      signature: refereeState.signature,
+    });
+  };
+
+  const handleClaimPrizeTimeout = async () => {
+    if (!canClaimTimeout) return;
+    resetRpsTxState();
+    await claimPrizeTimeout({
+      escrowAddress: claimEscrow,
+      gameId: claimGameId,
     });
   };
 
@@ -493,10 +536,11 @@ export const Bowl = () => {
   );
 
   const displaySessionId = useMemo(() => {
-    if (!sessionIdInput) return "No active session";
-    if (sessionIdInput.length < 10) return sessionIdInput;
-    return `${sessionIdInput.slice(0, 4)}..${sessionIdInput.slice(-3)}`;
-  }, [sessionIdInput]);
+    const id = activeGameId || sessionIdInput;
+    if (!id) return "No active game";
+    if (id.length < 10) return id;
+    return `${id.slice(0, 4)}..${id.slice(-3)}`;
+  }, [activeGameId, sessionIdInput]);
 
   const rpsIcon = (move: "rock" | "paper" | "scissors" | null) => {
     switch (move) {
@@ -577,6 +621,24 @@ export const Bowl = () => {
   }, []);
 
   useEffect(() => {
+    // [AGENT-GENERATED] Load local game counter for UI-only auto-increment.
+    const stored = window.localStorage.getItem("wambling3_local_game_counter");
+    if (!stored) return;
+    const parsed = Number(stored);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      setLocalGameCounter(parsed);
+    }
+  }, []);
+
+  useEffect(() => {
+    // [AGENT-GENERATED] Persist local game counter for the current browser.
+    window.localStorage.setItem(
+      "wambling3_local_game_counter",
+      localGameCounter.toString(),
+    );
+  }, [localGameCounter]);
+
+  useEffect(() => {
     // [Agent-Generated] Persist the last created escrow and auto-fill the form.
     if (txState.cloneAddress) {
       setLastEscrowAddress(txState.cloneAddress);
@@ -597,6 +659,10 @@ export const Bowl = () => {
     if (rpsTxState.action === "create") {
       if (normalizedEscrow) setActiveEscrow(normalizedEscrow);
       if (rpsTxState.gameId) setActiveGameId(rpsTxState.gameId);
+      if (rpsTxState.gameId && rpsTxState.gameId !== lastCountedGameId) {
+        setLocalGameCounter((prev) => prev + 1);
+        setLastCountedGameId(rpsTxState.gameId);
+      }
     }
 
     if (rpsTxState.action === "join") {
@@ -605,6 +671,7 @@ export const Bowl = () => {
     }
   }, [
     joinGameId,
+    lastCountedGameId,
     normalizedEscrow,
     normalizedJoinEscrow,
     rpsTxState.action,
@@ -721,45 +788,6 @@ export const Bowl = () => {
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleLoadSessionRpsStatus}
-                className="border-border-primary"
-              >
-                Load game status
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={refresh}
-                disabled={isSessionLoading}
-                className="border-border-primary"
-              >
-                {isSessionLoading ? "Refreshing..." : "Refresh"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCloseSession}
-                className="border-border-primary"
-              >
-                Close session
-              </Button>
-              <Button
-                type="button"
-                variant={flowMode === "join" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFlowMode("join")}
-                className="border-border-primary"
-              >
-                Join session
-              </Button>
-            </div>
           </div>
 
           {flowMode === "join" && (
@@ -859,6 +887,120 @@ export const Bowl = () => {
             )}
           </div>
 
+          {/* [Agent-Generated] Bet info + create session controls. */}
+          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1fr]">
+            <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                Active bet
+              </p>
+              <p className="text-sm text-text-secondary">
+                Required stake: {stakeEth || "0.0"} ETH
+              </p>
+              <p className="text-sm text-text-secondary">
+                Your bet: {betAmount || "0"} ETH
+              </p>
+              {hasBalance && !isOverBalance && (
+                <p className="text-xs text-text-tertiary">
+                  Available balance: {balance} ETH
+                </p>
+              )}
+              {isOverBalance && (
+                <p className="text-xs text-red-500">
+                  Amount exceeds your available balance.
+                </p>
+              )}
+              {sessionError && (
+                <p className="text-xs text-red-500">{sessionError}</p>
+              )}
+            </div>
+
+            {flowMode === "create" && (
+              <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                    Bet amount (ETH)
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      max={hasBalance ? balanceNum : undefined}
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(e.target.value)}
+                      placeholder="0.000"
+                      className="flex-1 text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
+                    />
+                    <Button
+                      onClick={handleMaxBetWithBalance}
+                      variant="outline"
+                      disabled={!hasBalance}
+                      className="border-primary/50 text-primary hover:bg-primary/10"
+                    >
+                      MAX
+                    </Button>
+                  </div>
+                  {isBalanceLoading && (
+                    <p className="text-xs text-text-tertiary">
+                      Loading balance...
+                    </p>
+                  )}
+                  {!isBalanceLoading && !hasBalance && (
+                    <p className="text-xs text-text-tertiary">
+                      Connect your wallet to validate the balance.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {quickAmounts.map((quick) => (
+                    <Button
+                      key={quick.value}
+                      onClick={() => handleQuickAmount(quick.value)}
+                      variant="outline"
+                      disabled={
+                        hasBalance && parseFloat(quick.value) > balanceNum
+                      }
+                      className="border-border-primary hover:border-primary/50 hover:bg-primary/10 text-text-primary"
+                    >
+                      {quick.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="rounded-lg border border-border-primary bg-bg-tertiary/40 p-4 space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                    Transaction status
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    Active network: {SESSION_FACTORY_CHAIN.name}
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    Status: {txState.status}
+                  </p>
+                  {txState.estimatedGas !== null && (
+                    <p className="text-sm text-text-secondary">
+                      Estimated gas: {txState.estimatedGas.toString()}
+                    </p>
+                  )}
+                  {txState.hash && (
+                    <p className="text-xs text-text-tertiary break-all">
+                      Tx: {txState.hash}
+                    </p>
+                  )}
+                  {txState.sessionId && (
+                    <p className="text-xs text-text-tertiary break-all">
+                      Session: {txState.sessionId}
+                    </p>
+                  )}
+                  {txState.error && (
+                    <p className="text-xs text-red-500">{txState.error}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* [AGENT-GENERATED] On-chain RPS match setup with third-party referee. */}
           <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
             <div>
@@ -867,6 +1009,9 @@ export const Bowl = () => {
               </p>
               <p className="text-xs text-text-secondary">
                 Choose a third-party referee who will sign the final payout.
+              </p>
+              <p className="text-xs text-text-tertiary">
+                Local game counter: {localGameCounter} · Next game #: {localGameCounter + 1}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1323,10 +1468,34 @@ export const Bowl = () => {
                   >
                     {copiedSignature ? "Copied" : "Copy signature"}
                   </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleClaimPrize}
+                      disabled={!canClaimPrize}
+                      className="border-border-primary"
+                    >
+                      {isRpsClaimSubmitting ? "Claiming..." : "Claim jackpot"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleClaimPrizeTimeout}
+                      disabled={!canClaimTimeout}
+                      className="border-border-primary"
+                    >
+                      {isRpsClaimTimeoutSubmitting
+                        ? "Claiming timeout..."
+                        : "Claim after timeout"}
+                    </Button>
+                  </div>
                 </div>
               )}
               {refereeState.error && (
                 <p className="text-xs text-red-500">{refereeState.error}</p>
+              )}
+              {(rpsTxState.action === "claim" || rpsTxState.action === "claim-timeout") && rpsTxState.error && (
+                <p className="text-xs text-red-500">{rpsTxState.error}</p>
               )}
             </div>
           </div>
@@ -1389,243 +1558,7 @@ export const Bowl = () => {
               )}
             </div>
           )}
-          {!isOwner && !isOwnerLoading && (
-            <p className="text-xs text-text-tertiary mt-2">
-              Admin available only for the SessionFactory owner.
-            </p>
-          )}
 
-          {/* [Agent-Generated] Game comparison area. */}
-          <div className="mt-6 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-            <div className="rounded-xl border border-border-primary bg-bg-secondary/70 p-4 text-center space-y-3">
-              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Your wallet
-              </p>
-              <p className="text-sm text-text-primary font-mono">
-                {currentEnsName ||
-                  (currentAddress ? formatAddress(currentAddress) : "No wallet")}
-              </p>
-              <div className="flex justify-center">{rpsIcon(localMove)}</div>
-              <p className="text-xs text-text-tertiary">
-                {localMove ? `You chose ${localMove}` : "No selection"}
-              </p>
-            </div>
-
-            <div className="text-center text-3xl font-bold text-text-primary">VS</div>
-
-            <div className="rounded-xl border border-border-primary bg-bg-secondary/70 p-4 text-center space-y-3">
-              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Opponent
-              </p>
-              <p className="text-sm text-text-primary font-mono">
-                {opponentEnsName ||
-                  (playerSlots[1]?.address
-                    ? formatAddress(playerSlots[1].address)
-                    : "Waiting for player")}
-              </p>
-              <div className="flex justify-center">{rpsIcon(null)}</div>
-              <p className="text-xs text-text-tertiary">No selection</p>
-            </div>
-          </div>
-
-          {!isOwnerLoading && !isOwner && (
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <div className="text-xs text-text-tertiary space-y-1">
-                <p>Admin available only for the SessionFactory owner.</p>
-                {ownerAddress && (
-                  <p className="break-all">
-                    Owner: {ownerAddress}
-                  </p>
-                )}
-                {currentAddress && (
-                  <p className="break-all">
-                    Current wallet: {currentAddress}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAdminTools((prev) => !prev)}
-                className="border-border-primary"
-              >
-                {showAdminTools ? "Hide admin" : "Show admin"}
-              </Button>
-            </div>
-          )}
-
-          {/* [Agent-Generated] RPS action buttons. */}
-          <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4">
-            <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold mb-3">
-              Your move
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Button
-                variant="outline"
-                onClick={() => setLocalMove("rock")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-gray-600 hover:to-gray-800 hover:border-gray-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
-              >
-                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-gray-600 to-gray-800 flex items-center justify-center shadow-lg border-2 border-gray-400">
-                  <span className="text-2xl">🪨</span>
-                </div>
-                <span className="text-sm font-semibold">Rock</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setLocalMove("paper")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-blue-400 hover:to-blue-600 hover:border-blue-300 transition-all flex flex-col items-center justify-center gap-2 py-4"
-              >
-                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg border-2 border-blue-300">
-                  <span className="text-2xl">📄</span>
-                </div>
-                <span className="text-sm font-semibold">Paper</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setLocalMove("scissors")}
-                className="border-border-primary bg-bg-secondary/70 hover:bg-linear-to-br hover:from-red-500 hover:to-red-700 hover:border-red-400 transition-all flex flex-col items-center justify-center gap-2 py-4"
-              >
-                <div className="relative w-12 h-12 rounded-full bg-linear-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg border-2 border-red-400">
-                  <span className="text-2xl">✂️</span>
-                </div>
-                <span className="text-sm font-semibold">Scissors</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* [Agent-Generated] Bet info + create session controls. */}
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1fr]">
-            <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
-              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                Active bet
-              </p>
-              <p className="text-sm text-text-secondary">
-                Required stake: {stakeEth || "0.0"} ETH
-              </p>
-              <p className="text-sm text-text-secondary">
-                Your bet: {betAmount || "0"} ETH
-              </p>
-              {hasBalance && !isOverBalance && (
-                <p className="text-xs text-text-tertiary">
-                  Available balance: {balance} ETH
-                </p>
-              )}
-              {isOverBalance && (
-                <p className="text-xs text-red-500">
-                  Amount exceeds your available balance.
-                </p>
-              )}
-              {sessionError && (
-                <p className="text-xs text-red-500">{sessionError}</p>
-              )}
-            </div>
-
-            {flowMode === "create" && (
-              <div className="rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                    Bet amount (ETH)
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      max={hasBalance ? balanceNum : undefined}
-                      value={betAmount}
-                      onChange={(e) => setBetAmount(e.target.value)}
-                      placeholder="0.000"
-                      className="flex-1 text-lg font-bold bg-bg-tertiary border-border-primary text-text-primary"
-                    />
-                    <Button
-                      onClick={handleMaxBetWithBalance}
-                      variant="outline"
-                      disabled={!hasBalance}
-                      className="border-primary/50 text-primary hover:bg-primary/10"
-                    >
-                      MAX
-                    </Button>
-                  </div>
-                  {isBalanceLoading && (
-                    <p className="text-xs text-text-tertiary">
-                      Loading balance...
-                    </p>
-                  )}
-                  {!isBalanceLoading && !hasBalance && (
-                    <p className="text-xs text-text-tertiary">
-                      Connect your wallet to validate the balance.
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-4 gap-2">
-                  {quickAmounts.map((quick) => (
-                    <Button
-                      key={quick.value}
-                      onClick={() => handleQuickAmount(quick.value)}
-                      variant="outline"
-                      disabled={
-                        hasBalance && parseFloat(quick.value) > balanceNum
-                      }
-                      className="border-border-primary hover:border-primary/50 hover:bg-primary/10 text-text-primary"
-                    >
-                      {quick.label}
-                    </Button>
-                  ))}
-                </div>
-
-                <Button
-                  onClick={handleBetWithBalance}
-                  disabled={!canBet}
-                  className="w-full h-14 text-lg font-bold bg-linear-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-darker transition-all duration-300 shadow-lg hover:shadow-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isAnimating || isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {txState.status === "signing"
-                        ? "Signing..."
-                        : txState.status === "pending"
-                          ? "Confirming..."
-                          : "Placing bet..."}
-                    </span>
-                  ) : (
-                    `Bet ${betAmount || "0"} ETH`
-                  )}
-                </Button>
-
-                <div className="rounded-lg border border-border-primary bg-bg-tertiary/40 p-4 space-y-2">
-                  <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                    Transaction status
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    Active network: {SESSION_FACTORY_CHAIN.name}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    Status: {txState.status}
-                  </p>
-                  {txState.estimatedGas !== null && (
-                    <p className="text-sm text-text-secondary">
-                      Estimated gas: {txState.estimatedGas.toString()}
-                    </p>
-                  )}
-                  {txState.hash && (
-                    <p className="text-xs text-text-tertiary break-all">
-                      Tx: {txState.hash}
-                    </p>
-                  )}
-                  {txState.sessionId && (
-                    <p className="text-xs text-text-tertiary break-all">
-                      Session: {txState.sessionId}
-                    </p>
-                  )}
-                  {txState.error && (
-                    <p className="text-xs text-red-500">{txState.error}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>

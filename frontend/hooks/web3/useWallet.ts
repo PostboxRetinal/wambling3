@@ -17,6 +17,7 @@ import type {
 
 export const useWalletBalance = ({
   chain = sepolia,
+  autoRefreshMs = 15000,
 }: UseWalletBalanceProps = {}) => {
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
@@ -63,6 +64,18 @@ export const useWalletBalance = ({
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
+
+  useEffect(() => {
+    // [AGENT-GENERATED] Auto-refresh wallet balance at a fixed interval.
+    if (!authenticated || !walletAddress) return;
+    if (autoRefreshMs <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchBalance();
+    }, autoRefreshMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [authenticated, autoRefreshMs, fetchBalance, walletAddress]);
 
   const isValidAddress = (addr: string): boolean => 
     /^0x[a-fA-F0-9]{40}$/.test(addr);

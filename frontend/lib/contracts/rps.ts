@@ -82,6 +82,37 @@ export const RPS_ABI = [
     stateMutability: "nonpayable",
   },
   {
+    type: "function",
+    name: "claimPrize",
+    inputs: [
+      {
+        name: "gameId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "signature",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "claimPrizeTimeout",
+    inputs: [
+      {
+        name: "gameId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
     type: "event",
     name: "GameCreated",
     anonymous: false,

@@ -2,6 +2,7 @@ import type { Chain } from "viem";
 
 export interface UseWalletBalanceProps {
   chain?: Chain;
+  autoRefreshMs?: number;
 }
 
 export interface SendTransactionParams {
