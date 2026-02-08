@@ -135,7 +135,7 @@ export const useWalletBalance = ({
 };
 
 export const AVAILABLE_CHAINS = [
-  { chain: sepolia, label: "Ethereum Sepolia (testnet)" },
   { chain: baseSepolia, label: "Base Sepolia (testnet)" },
+  { chain: sepolia, label: "Ethereum Sepolia (testnet)" },
   { chain: base, label: "Base (mainnet)" },
 ] as const;

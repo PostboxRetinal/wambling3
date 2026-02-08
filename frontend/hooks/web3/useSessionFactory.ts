@@ -105,7 +105,8 @@ export const useSessionFactory = () => {
         method: "wallet_switchEthereumChain",
         params: [{ chainId: targetChainIdHex }],
       });
-    } catch (error) {
+    } catch (_error) {
+      // [AGENT-GENERATED] Ignore switch errors and attempt addEthereumChain.
       // [Agent-Generated] Attempt to add the chain if it is not configured.
       await provider.request({
         method: "wallet_addEthereumChain",
@@ -147,7 +148,8 @@ export const useSessionFactory = () => {
               if (sessionId) return bytes16ToUuid(sessionId);
             }
           }
-        } catch (error) {
+        } catch (_error) {
+          // [AGENT-GENERATED] Skip non-matching logs.
           // [Agent-Generated] Skip non-matching logs.
           continue;
         }

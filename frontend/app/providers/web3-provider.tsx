@@ -4,20 +4,19 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  // [AGENT-GENERATED] Keep QueryClient stable across renders.
   const [queryClient] = useState(() => new QueryClient());
-  const [isMounted, setIsMounted] = useState(false);
+  const isClient = typeof window !== "undefined";
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // [Agent-Generated] Create config only on client mount to prevent SSR errors.
+  // [AGENT-GENERATED] Only build Wagmi config on the client to avoid indexedDB SSR.
   const config = useMemo(() => {
-    if (!isMounted) return null;
-    
+    if (!isClient) return null;
+
+    const appUrl = window.location.origin;
+
     return createConfig(
       getDefaultConfig({
         // Your dApps chains
@@ -38,14 +37,13 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 
         // Optional App Info
         appDescription: "Your App Description",
-        appUrl: window.location.origin,
+        appUrl,
         appIcon: "https://family.co/logo.png",
       }),
     );
-  }, [isMounted]);
+  }, [isClient]);
 
-  // [Agent-Generated] Prevent SSR hydration issues by waiting for client mount.
-  if (!isMounted || !config) {
+  if (!isClient || !config) {
     return <>{children}</>;
   }
 

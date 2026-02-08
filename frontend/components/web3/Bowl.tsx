@@ -46,9 +46,8 @@ export const Bowl = () => {
   const [sessionIdInput, setSessionIdInput] = useState("");
   const [copiedSession, setCopiedSession] = useState(false);
   const [refereeTouched, setRefereeTouched] = useState(false);
-  const [refereeAddress, setRefereeAddress] = useState(
-    process.env.NEXT_PUBLIC_RPS_REFEREE_ADDRESS ?? "",
-  );
+  // [AGENT-GENERATED] Start empty; use env value only as placeholder.
+  const [refereeAddress, setRefereeAddress] = useState("");
   const [implementationTouched, setImplementationTouched] = useState(false);
   const [implementationAddress, setImplementationAddress] = useState(
     process.env.NEXT_PUBLIC_RPS_IMPLEMENTATION_ADDRESS ?? "",
@@ -119,6 +118,8 @@ export const Bowl = () => {
     isAddress(normalizedImplementation) &&
     normalizedImplementation.toLowerCase() !==
       "0x0000000000000000000000000000000000000000";
+  const canSetImplementation =
+    isOwner && isImplementationValid && !isImplementationSubmitting;
   const implementationError = useMemo(() => {
     if (!implementationTouched) return null;
     if (!normalizedImplementation) return "Implementacion requerida.";
@@ -196,7 +197,7 @@ export const Bowl = () => {
   };
 
   const handleSetImplementation = async () => {
-    if (!isImplementationValid || isImplementationSubmitting) return;
+    if (!canSetImplementation) return;
     resetTxState();
     await setRpsImplementation({
       implementationAddress: normalizedImplementation,
@@ -222,15 +223,6 @@ export const Bowl = () => {
   const [localMove, setLocalMove] = useState<"rock" | "paper" | "scissors" | null>(
     null,
   );
-
-  const resultText = useMemo(() => {
-    if (!snapshot?.winner || !currentAddress) return "En curso";
-    return snapshot.winner.toLowerCase() === currentAddress.toLowerCase()
-      ? "Ganaste"
-      : "Perdiste";
-  }, [currentAddress, snapshot?.winner]);
-
-  const roundInfo = useMemo(() => ({ current: 1, total: 3 }), []);
 
   const displaySessionId = useMemo(() => {
     if (!sessionIdInput) return "Sin sesión activa";
@@ -359,10 +351,12 @@ export const Bowl = () => {
                 <p className="text-lg font-mono font-bold text-text-primary">
                   {displaySessionId}
                 </p>
-                <button
+                <Button
                   onClick={handleCopySession}
                   disabled={!sessionIdInput}
-                  className="p-2 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-lg hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Copiar ID completo"
                 >
                   <svg
@@ -379,7 +373,7 @@ export const Bowl = () => {
                       d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                     />
                   </svg>
-                </button>
+                </Button>
                 {copiedSession && (
                   <span className="text-xs text-green-500 font-semibold animate-pulse">
                     ¡Copiado!
@@ -489,7 +483,7 @@ export const Bowl = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                  Escrow / Referee (Bankr Bot)
+                  Escrow / Referee
                 </p>
                 <p className="text-xs text-text-secondary">
                   Debe ser un wallet de tercero, distinto a los jugadores.
@@ -513,7 +507,10 @@ export const Bowl = () => {
                 setRefereeTouched(true);
               }}
               onBlur={() => setRefereeTouched(true)}
-              placeholder="0xRefereeWallet"
+              placeholder={
+                process.env.NEXT_PUBLIC_RPS_REFEREE_ADDRESS ||
+                "0xRefereeWallet"
+              }
               className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
             />
             {refereeError && (
@@ -558,7 +555,7 @@ export const Bowl = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleSetImplementation}
-                  disabled={!isImplementationValid || isImplementationSubmitting}
+                  disabled={!canSetImplementation}
                   className="border-border-primary"
                 >
                   {isImplementationSubmitting ? "Actualizando..." : "Set impl"}
@@ -576,6 +573,11 @@ export const Bowl = () => {
               />
               {implementationError && (
                 <p className="text-xs text-red-500">{implementationError}</p>
+              )}
+              {!isOwner && !isOwnerLoading && (
+                <p className="text-xs text-amber-500">
+                  Solo el owner puede ejecutar esta accion.
+                </p>
               )}
               {txState.action === "set-implementation" && (
                 <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">

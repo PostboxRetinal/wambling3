@@ -72,9 +72,9 @@ export const TransactionHistory = () => {
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
         <div className="space-y-3">
-          {transactions.slice(0, 10).map((tx) => (
+          {transactions.slice(0, 10).map((tx, index) => (
             <div
-              key={tx.hash}
+              key={`${tx.hash}-${tx.timestamp}-${index}`}
               className="flex items-center justify-between p-4 rounded-lg bg-bg-primary/50 hover:bg-bg-primary/70 transition-colors"
             >
               <div className="flex items-center gap-3">

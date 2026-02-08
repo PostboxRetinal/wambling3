@@ -378,7 +378,8 @@ export const useRegisterENS = (): UseRegisterENSResult => {
         toast.error("Commitment failed", { description: error });
       }
     },
-    [walletAddress, getContracts, publicClient]
+    // [AGENT-GENERATED] Keep hook deps aligned with buildResolverData usage.
+    [walletAddress, getContracts, publicClient, buildResolverData]
   );
 
   // [Agent-Generated] Complete registration (TX 2 - mint ENS).
@@ -457,7 +458,8 @@ export const useRegisterENS = (): UseRegisterENSResult => {
       setState((prev) => ({ ...prev, status: "error", error }));
       toast.error("Registration failed", { description: error });
     }
-  }, [walletAddress, state, getContracts, publicClient]);
+  // [AGENT-GENERATED] Keep hook deps aligned with buildResolverData usage.
+  }, [walletAddress, state, getContracts, publicClient, buildResolverData]);
 
   // [Agent-Generated] Set reverse record (address -> name resolution).
   const setReverseRecord = useCallback(
