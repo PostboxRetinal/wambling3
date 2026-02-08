@@ -13,8 +13,8 @@ export const StartBowl = () => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavigateToBowl = ({ id, mode }: GameSelection) => {
-    router.push(`/home/bowl?game=${id}&mode=${mode}`);
+  const handleNavigateToBowl = ({ id }: GameSelection) => {
+    router.push(`/home/bowl?game=${id}`);
     setIsOpen(false);
   };
 

@@ -28,6 +28,7 @@ import {
 import type {
   CreateSessionParams,
   CreateRpsCloneParams,
+  SetRpsImplementationParams,
   SessionFactoryTxState,
 } from "@/types/sessionFactory.types";
 
@@ -418,9 +419,104 @@ export const useSessionFactory = () => {
     [decodeRpsCloneCreated, ensureCorrectChain, ensureWalletReady, publicClient],
   );
 
+  const setRpsImplementation = useCallback(
+    async ({ implementationAddress }: SetRpsImplementationParams) => {
+      setTxState((prev) => ({
+        ...prev,
+        status: "signing",
+        error: null,
+        action: "set-implementation",
+      }));
+
+      try {
+        const { provider, address } = await ensureWalletReady();
+        await ensureCorrectChain(provider as EIP1193Provider);
+
+        const walletClient = createWalletClient({
+          chain: SESSION_FACTORY_CHAIN,
+          transport: custom(provider),
+        });
+
+        const contractAddress = assertSessionFactoryAddress();
+
+        const simulation = await publicClient.simulateContract({
+          address: contractAddress,
+          abi: SESSION_FACTORY_ABI,
+          functionName: "setRpsImplementation",
+          args: [implementationAddress as `0x${string}`],
+          account: address,
+        });
+
+        const estimatedGas = await publicClient.estimateContractGas({
+          ...simulation.request,
+          account: address,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          estimatedGas,
+        }));
+
+        const hash = await walletClient.writeContract({
+          ...simulation.request,
+          gas: estimatedGas,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "pending",
+          hash,
+          action: "set-implementation",
+        }));
+
+        toast.message("Actualizando implementacion", {
+          description: "Esperando confirmacion en la red.",
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 1,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "confirmed",
+          receipt,
+          action: "set-implementation",
+        }));
+
+        toast.success("Implementacion actualizada", {
+          description: "RPS implementation configurada.",
+        });
+
+        return { receipt, hash };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar la implementacion.";
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "failed",
+          error: message,
+          action: "set-implementation",
+        }));
+
+        toast.error("Error al actualizar implementacion", {
+          description: message,
+        });
+
+        throw error;
+      }
+    },
+    [ensureCorrectChain, ensureWalletReady, publicClient],
+  );
+
   return {
     createSession,
     createRpsClone,
+    setRpsImplementation,
     txState,
     resetTxState,
     chain: SESSION_FACTORY_CHAIN,

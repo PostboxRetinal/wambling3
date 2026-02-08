@@ -17,7 +17,7 @@ export type SessionFactoryTxState = {
   estimatedGas: bigint | null;
   sessionId: string | null;
   cloneAddress: string | null;
-  action: "create-session" | "create-escrow" | null;
+  action: "create-session" | "create-escrow" | "set-implementation" | null;
 };
 
 export type CreateSessionParams = {
@@ -27,6 +27,10 @@ export type CreateSessionParams = {
 
 export type CreateRpsCloneParams = {
   refereeAddress: string;
+};
+
+export type SetRpsImplementationParams = {
+  implementationAddress: string;
 };
 
 export type SessionInfoRaw = readonly [

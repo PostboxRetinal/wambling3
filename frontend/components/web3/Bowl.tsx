@@ -10,12 +10,15 @@ import { Input } from "@/components/ui";
 import { useBowl } from "@/hooks/web3/useBowl";
 import { useGameSession } from "@/hooks/web3/useGameSession";
 import { useEnsName } from "@/hooks/web3/useEnsName";
+import { SESSION_FACTORY_ABI } from "@/lib/contracts/sessionFactory";
 import {
+  assertSessionFactoryAddress,
   SESSION_FACTORY_CHAIN,
+  SESSION_FACTORY_RPC_URL,
 } from "@/lib/contracts/sessionFactory";
 import type { GameId } from "@/types/game.types";
 import { useWalletBalance } from "@/hooks/web3/useWallet";
-import { formatEther, isAddress } from "viem";
+import { createPublicClient, formatEther, http, isAddress } from "viem";
 import { useSearchParams } from "next/navigation";
 
 export const Bowl = () => {
@@ -34,6 +37,7 @@ export const Bowl = () => {
     isBetValid,
     txState,
     createRpsClone,
+    setRpsImplementation,
     resetTxState,
   } = useBowl({ selectedGame, selectedMode });
 
@@ -45,6 +49,12 @@ export const Bowl = () => {
   const [refereeAddress, setRefereeAddress] = useState(
     process.env.NEXT_PUBLIC_RPS_REFEREE_ADDRESS ?? "",
   );
+  const [implementationTouched, setImplementationTouched] = useState(false);
+  const [implementationAddress, setImplementationAddress] = useState(
+    process.env.NEXT_PUBLIC_RPS_IMPLEMENTATION_ADDRESS ?? "",
+  );
+  const [ownerAddress, setOwnerAddress] = useState<string | null>(null);
+  const [isOwnerLoading, setIsOwnerLoading] = useState(false);
 
   const {
     snapshot,
@@ -72,6 +82,12 @@ export const Bowl = () => {
     txState.status === "signing" || txState.status === "pending";
   const isEscrowSubmitting =
     txState.action === "create-escrow" && isSubmitting;
+  const isImplementationSubmitting =
+    txState.action === "set-implementation" && isSubmitting;
+  const isOwner =
+    !!ownerAddress &&
+    !!currentAddress &&
+    ownerAddress.toLowerCase() === currentAddress.toLowerCase();
 
   const normalizedReferee = refereeAddress.trim();
   const isZeroReferee =
@@ -95,6 +111,19 @@ export const Bowl = () => {
       return "El escrow no puede ser jugador de la mesa.";
     return null;
   }, [isRefereeThirdParty, isRefereeValid, normalizedReferee, refereeTouched]);
+
+  const normalizedImplementation = implementationAddress.trim();
+  const isImplementationValid =
+    !!normalizedImplementation &&
+    isAddress(normalizedImplementation) &&
+    normalizedImplementation.toLowerCase() !==
+      "0x0000000000000000000000000000000000000000";
+  const implementationError = useMemo(() => {
+    if (!implementationTouched) return null;
+    if (!normalizedImplementation) return "Implementacion requerida.";
+    if (!isImplementationValid) return "Direccion invalida de implementacion.";
+    return null;
+  }, [implementationTouched, isImplementationValid, normalizedImplementation]);
 
   const canBet =
     isBetValid &&
@@ -163,6 +192,14 @@ export const Bowl = () => {
     if (!isRefereeThirdParty || isEscrowSubmitting) return;
     resetTxState();
     await createRpsClone({ refereeAddress: normalizedReferee });
+  };
+
+  const handleSetImplementation = async () => {
+    if (!isImplementationValid || isImplementationSubmitting) return;
+    resetTxState();
+    await setRpsImplementation({
+      implementationAddress: normalizedImplementation,
+    });
   };
 
   const playerSlots = useMemo(() => {
@@ -252,6 +289,31 @@ export const Bowl = () => {
       refresh();
     }
   }, [refresh, sessionIdInput, selectedMode]);
+
+  useEffect(() => {
+    // [Agent-Generated] Fetch SessionFactory owner for admin gating.
+    const loadOwner = async () => {
+      try {
+        setIsOwnerLoading(true);
+        const publicClient = createPublicClient({
+          chain: SESSION_FACTORY_CHAIN,
+          transport: http(SESSION_FACTORY_RPC_URL),
+        });
+        const owner = await publicClient.readContract({
+          address: assertSessionFactoryAddress(),
+          abi: SESSION_FACTORY_ABI,
+          functionName: "owner",
+        });
+        setOwnerAddress(owner as `0x${string}`);
+      } catch (error) {
+        console.error("No se pudo leer owner:", error);
+      } finally {
+        setIsOwnerLoading(false);
+      }
+    };
+
+    loadOwner();
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -477,6 +539,65 @@ export const Bowl = () => {
               </div>
             )}
           </div>
+
+          {/* [Agent-Generated] Admin: set RPS implementation on SessionFactory. */}
+          {isOwner && (
+            <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                    Admin · Implementacion RPS
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Solo el owner del SessionFactory puede actualizarla.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSetImplementation}
+                  disabled={!isImplementationValid || isImplementationSubmitting}
+                  className="border-border-primary"
+                >
+                  {isImplementationSubmitting ? "Actualizando..." : "Set impl"}
+                </Button>
+              </div>
+              <Input
+                value={implementationAddress}
+                onChange={(e) => {
+                  setImplementationAddress(e.target.value);
+                  setImplementationTouched(true);
+                }}
+                onBlur={() => setImplementationTouched(true)}
+                placeholder="0xRpsImplementation"
+                className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+              />
+              {implementationError && (
+                <p className="text-xs text-red-500">{implementationError}</p>
+              )}
+              {txState.action === "set-implementation" && (
+                <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
+                  <p className="text-xs text-text-tertiary">
+                    Estado: {txState.status}
+                  </p>
+                  {txState.hash && (
+                    <p className="text-xs text-text-tertiary break-all">
+                      Tx: {txState.hash}
+                    </p>
+                  )}
+                  {txState.error && (
+                    <p className="text-xs text-red-500">{txState.error}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {!isOwner && !isOwnerLoading && (
+            <p className="text-xs text-text-tertiary mt-2">
+              Admin disponible solo para el owner del SessionFactory.
+            </p>
+          )}
 
           {/* [Agent-Generated] Game comparison area. */}
           <div className="mt-6 grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]">

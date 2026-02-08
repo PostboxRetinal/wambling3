@@ -9,7 +9,13 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [coins, setCoins] = useState<Coin[]>([]);
 
-  const { createSession, createRpsClone, txState, resetTxState } = useSessionFactory();
+  const {
+    createSession,
+    createRpsClone,
+    setRpsImplementation,
+    txState,
+    resetTxState,
+  } = useSessionFactory();
 
   const quickAmounts = [
     { label: "0.001", value: "0.001" },
@@ -95,6 +101,7 @@ export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
     isBetValid,
     txState,
     createRpsClone,
+    setRpsImplementation,
     resetTxState,
   };
 };

@@ -305,6 +305,19 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "setRpsImplementation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes16",
         "name": "sessionId",
         "type": "bytes16"
