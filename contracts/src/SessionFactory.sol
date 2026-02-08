@@ -3,10 +3,14 @@ pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+
+import {RockPaperScissors} from "./RockPaperScissors.sol";
 
 /// @title SessionFactory
 /// @notice Permanent entry point that records off-chain sessions and escrows wagers.
 contract SessionFactory is Ownable, ReentrancyGuard {
+    using Clones for address;
     enum SessionState {
         None,
         Active,
@@ -34,6 +38,8 @@ contract SessionFactory is Ownable, ReentrancyGuard {
 
     uint256 public totalFees;
 
+    address public rpsImplementation;
+
     bytes16[] private allSessions;
     mapping(bytes16 => SessionInfo) public sessionInfo;
     mapping(bytes16 => uint256) private sessionIndex;
@@ -48,6 +54,8 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     event SessionFinalized(bytes16 indexed sessionId, SessionState state, address winner, uint256 payout, uint256 fee);
     event FeesWithdrawn(address indexed to, uint256 amount);
     event SessionRemoved(bytes16 indexed sessionId);
+    event RpsImplementationUpdated(address indexed implementation);
+    event RpsCloneCreated(address indexed clone, address indexed owner, address indexed referee);
 
     error InvalidParams();
     error UnknownSession();
@@ -59,8 +67,28 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     error InvalidWinner();
     error OpponentMissing();
     error SessionAlreadyExists();
+    error ImplementationNotSet();
 
     constructor() Ownable(msg.sender) {}
+
+    /// @notice Set the RockPaperScissors implementation used for EIP-1167 clones.
+    function setRpsImplementation(address implementation) external onlyOwner {
+        if (implementation == address(0)) revert InvalidParams();
+        rpsImplementation = implementation;
+        emit RpsImplementationUpdated(implementation);
+    }
+
+    /// @notice Deploy an EIP-1167 clone for a RockPaperScissors game.
+    /// @dev Initializes the clone with the referee and the caller as owner.
+    function createRpsClone(address referee) external returns (address clone) {
+        if (rpsImplementation == address(0)) revert ImplementationNotSet();
+        if (referee == address(0)) revert InvalidParams();
+
+        clone = Clones.clone(rpsImplementation);
+        RockPaperScissors(clone).initialize(referee, msg.sender);
+
+        emit RpsCloneCreated(clone, msg.sender, referee);
+    }
 
     /// @notice Create a new off-chain session by staking the wager in escrow.
     function createSession(bytes16 sessionId, uint256 stake, GameType gameType) external payable returns (bytes16) {

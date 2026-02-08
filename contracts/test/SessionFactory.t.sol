@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -5,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {SessionFactory} from "../src/SessionFactory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {RockPaperScissors} from "../src/RockPaperScissors.sol";
 
 contract SessionFactoryTest is Test {
     SessionFactory private factory;
@@ -118,5 +120,42 @@ contract SessionFactoryTest is Test {
         factory.withdrawFees(alice, fee);
         assertEq(factory.totalFees(), 0);
         assertEq(alice.balance, aliceStart + fee);
+    }
+
+    function testSetRpsImplementationOnlyOwner() external {
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice)
+        );
+        factory.setRpsImplementation(address(0x1234));
+    }
+
+    function testCreateRpsCloneRequiresImplementation() external {
+        vm.expectRevert(SessionFactory.ImplementationNotSet.selector);
+        factory.createRpsClone(address(0xBEEF));
+    }
+
+    function testCreateRpsCloneRequiresValidReferee() external {
+        RockPaperScissors implementation = new RockPaperScissors(address(0xBEEF));
+        factory.setRpsImplementation(address(implementation));
+
+        vm.expectRevert(SessionFactory.InvalidParams.selector);
+        factory.createRpsClone(address(0));
+    }
+
+    function testCreateRpsCloneInitializes() external {
+        address referee = address(0xBEEF);
+        RockPaperScissors implementation = new RockPaperScissors(referee);
+        factory.setRpsImplementation(address(implementation));
+
+        vm.prank(alice);
+        address clone = factory.createRpsClone(referee);
+
+        assertEq(RockPaperScissors(clone).refereeAddress(), referee);
+        assertEq(RockPaperScissors(clone).owner(), alice);
+
+        vm.prank(alice);
+        vm.expectRevert(RockPaperScissors.InvalidState.selector);
+        RockPaperScissors(clone).initialize(referee, alice);
     }
 }
