@@ -95,12 +95,6 @@
         "internalType": "address",
         "name": "owner",
         "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "referee",
-        "type": "address"
       }
     ],
     "name": "RpsCloneCreated",
@@ -284,13 +278,7 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "referee",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "name": "createRpsClone",
     "outputs": [
       {

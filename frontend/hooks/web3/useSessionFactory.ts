@@ -27,7 +27,6 @@ import {
 } from "@/lib/contracts/sessionFactory";
 import type {
   CreateSessionParams,
-  CreateRpsCloneParams,
   SetRpsImplementationParams,
   SessionFactoryTxState,
 } from "@/types/sessionFactory.types";
@@ -321,8 +320,7 @@ export const useSessionFactory = () => {
     [decodeSessionCreated, ensureCorrectChain, ensureWalletReady, publicClient],
   );
 
-  const createRpsClone = useCallback(
-    async ({ refereeAddress }: CreateRpsCloneParams) => {
+  const createRpsClone = useCallback(async () => {
       setTxState((prev) => ({
         ...prev,
         status: "signing",
@@ -346,7 +344,6 @@ export const useSessionFactory = () => {
           address: contractAddress,
           abi: SESSION_FACTORY_ABI,
           functionName: "createRpsClone",
-          args: [refereeAddress as `0x${string}`],
           account: address,
         });
 
@@ -417,9 +414,7 @@ export const useSessionFactory = () => {
 
         throw error;
       }
-    },
-    [decodeRpsCloneCreated, ensureCorrectChain, ensureWalletReady, publicClient],
-  );
+    }, [decodeRpsCloneCreated, ensureCorrectChain, ensureWalletReady, publicClient]);
 
   const setRpsImplementation = useCallback(
     async ({ implementationAddress }: SetRpsImplementationParams) => {

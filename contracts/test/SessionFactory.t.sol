@@ -132,39 +132,20 @@ contract SessionFactoryTest is Test {
 
     function testCreateRpsCloneRequiresImplementation() external {
         vm.expectRevert(SessionFactory.ImplementationNotSet.selector);
-        factory.createRpsClone(address(0xBEEF));
-    }
-
-    function testCreateRpsCloneRequiresValidReferee() external {
-        RockPaperScissors implementation = new RockPaperScissors(address(0xBEEF));
-        factory.setRpsImplementation(address(implementation));
-
-        vm.expectRevert(SessionFactory.InvalidParams.selector);
-        factory.createRpsClone(address(0));
-    }
-
-    function testCreateRpsCloneRejectsPlayerAsReferee() external {
-        RockPaperScissors implementation = new RockPaperScissors(address(0xBEEF));
-        factory.setRpsImplementation(address(implementation));
-
-        vm.prank(alice);
-        vm.expectRevert(SessionFactory.InvalidParams.selector);
-        factory.createRpsClone(alice);
+        factory.createRpsClone();
     }
 
     function testCreateRpsCloneInitializes() external {
-        address referee = address(0xBEEF);
-        RockPaperScissors implementation = new RockPaperScissors(referee);
+        RockPaperScissors implementation = new RockPaperScissors();
         factory.setRpsImplementation(address(implementation));
 
         vm.prank(alice);
-        address clone = factory.createRpsClone(referee);
+        address clone = factory.createRpsClone();
 
-        assertEq(RockPaperScissors(clone).refereeAddress(), referee);
         assertEq(RockPaperScissors(clone).owner(), alice);
 
         vm.prank(alice);
         vm.expectRevert(RockPaperScissors.InvalidState.selector);
-        RockPaperScissors(clone).initialize(referee, alice);
+        RockPaperScissors(clone).initialize(alice);
     }
 }

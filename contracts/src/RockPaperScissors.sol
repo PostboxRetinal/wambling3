@@ -33,6 +33,8 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
     struct Game {
         address player1;
         address player2;
+        address referee;
+        address winner;
         uint256 bet;
         uint256 pot;
         uint8 bestOf;
@@ -41,6 +43,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         uint8 round;
         GameState state;
         bool paid;
+        uint64 resolvedAt;
     }
 
     struct RoundData {
@@ -55,8 +58,8 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
     bytes32 public constant REFEREE_TYPEHASH =
         keccak256("RefereeDecision(uint256 gameId,address winner,uint256 amount,uint256 nonce)");
 
-    address public refereeAddress;
     uint256 public nextGameId;
+    uint256 public constant REFEREE_TIMEOUT = 60;
 
     mapping(uint256 => Game) public games;
     mapping(uint256 => RoundData) private roundData;
@@ -71,7 +74,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
     event RoundResolved(uint256 indexed gameId, uint8 round, uint8 winsP1, uint8 winsP2);
     event GameAwaitingReferee(uint256 indexed gameId);
     event PrizeClaimed(uint256 indexed gameId, address indexed winner, uint256 amount);
-    event RefereeUpdated(address indexed referee);
+    event GameResolved(uint256 indexed gameId, address indexed winner, address indexed referee);
     event GameCancelled(uint256 indexed gameId);
 
     error InvalidParams();
@@ -82,42 +85,36 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
     error CommitmentMissing();
     error InvalidReveal();
     error InvalidSignature();
+    error NotWinner();
+    error RefereeTimeoutNotReached();
     error GameNotReady();
 
-    constructor(address initialReferee) EIP712("Wambling3 RockPaperScissors", "1") Ownable(msg.sender) {
-        if (initialReferee == address(0)) revert InvalidParams();
-        refereeAddress = initialReferee;
+    constructor() EIP712("Wambling3 RockPaperScissors", "1") Ownable(msg.sender) {
         initialized = true;
     }
 
-    /// @notice Initialize a clone instance (EIP-1167) with referee and owner.
+    /// @notice Initialize a clone instance (EIP-1167) with owner.
     /// @dev Can only be called once; intended for minimal proxy clones.
-    function initialize(address initialReferee, address initialOwner) external {
+    function initialize(address initialOwner) external {
         if (initialized) revert InvalidState();
-        if (initialReferee == address(0) || initialOwner == address(0)) revert InvalidParams();
+        if (initialOwner == address(0)) revert InvalidParams();
 
         initialized = true;
-        refereeAddress = initialReferee;
         _transferOwnership(initialOwner);
     }
 
-    /// @notice Owner can update the trusted referee (Bankr bot wallet).
-    function setRefereeAddress(address newReferee) external onlyOwner {
-        if (newReferee == address(0)) revert InvalidParams();
-        refereeAddress = newReferee;
-        emit RefereeUpdated(newReferee);
-    }
-
-    /// @notice Create a new best-of-N game with a bet deposit.
-    function createGame(uint8 bestOf) external payable returns (uint256 gameId) {
+    /// @notice Create a new best-of-N game with a bet deposit and referee.
+    function createGame(uint8 bestOf, address referee) external payable returns (uint256 gameId) {
         if (bestOf == 0 || bestOf % 2 == 0) revert InvalidParams();
         if (msg.value == 0) revert InvalidParams();
-        if (refereeAddress == msg.sender) revert InvalidParams();
+        if (referee == address(0) || referee == msg.sender) revert InvalidParams();
 
         gameId = nextGameId++;
         games[gameId] = Game({
             player1: msg.sender,
             player2: address(0),
+            referee: referee,
+            winner: address(0),
             bet: msg.value,
             pot: 0,
             bestOf: bestOf,
@@ -125,7 +122,8 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
             winsP2: 0,
             round: 1,
             state: GameState.WaitingForOpponent,
-            paid: false
+            paid: false,
+            resolvedAt: 0
         });
 
         emit GameCreated(gameId, msg.sender, msg.value, bestOf);
@@ -138,7 +136,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         if (game.player1 == address(0) || game.player2 != address(0)) revert AlreadyJoined();
         if (msg.value != game.bet) revert StakeMismatch();
         if (msg.sender == game.player1) revert InvalidParams();
-        if (refereeAddress == msg.sender) revert InvalidParams();
+        if (game.referee == msg.sender) revert InvalidParams();
 
         game.player2 = msg.sender;
         game.pot = game.bet + msg.value;
@@ -212,10 +210,12 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
 
         if (msg.sender != game.player1 && msg.sender != game.player2) revert NotPlayer();
 
+        if (msg.sender != game.winner) revert NotWinner();
+
         uint256 nonce = nonces[gameId];
         address winner = msg.sender;
         uint256 amount = game.pot;
-        _verifySignature(gameId, winner, amount, nonce, signature);
+        _verifySignature(gameId, game.referee, winner, amount, nonce, signature);
 
         nonces[gameId] = nonce + 1;
         game.paid = true;
@@ -223,6 +223,23 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
 
         _sendValue(winner, amount);
         emit PrizeClaimed(gameId, winner, amount);
+    }
+
+    /// @notice Claim prize without referee signature after timeout.
+    function claimPrizeTimeout(uint256 gameId) external nonReentrant {
+        Game storage game = games[gameId];
+        if (game.state != GameState.AwaitingReferee) revert GameNotReady();
+        if (game.paid) revert InvalidState();
+        if (msg.sender != game.winner) revert NotWinner();
+        if (game.resolvedAt == 0 || block.timestamp < game.resolvedAt + REFEREE_TIMEOUT) {
+            revert RefereeTimeoutNotReached();
+        }
+
+        game.paid = true;
+        game.state = GameState.Paid;
+
+        _sendValue(game.winner, game.pot);
+        emit PrizeClaimed(gameId, game.winner, game.pot);
     }
 
     /// @notice Cancel before opponent joins.
@@ -234,6 +251,11 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         game.state = GameState.Cancelled;
         _sendValue(game.player1, game.bet);
         emit GameCancelled(gameId);
+    }
+
+    /// @notice Read the current game state.
+    function getGameState(uint256 gameId) external view returns (GameState) {
+        return games[gameId].state;
     }
 
     function _resolveRound(uint256 gameId, Game storage game, RoundData storage round) internal {
@@ -252,6 +274,9 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         uint8 targetWins = uint8((game.bestOf / 2) + 1);
         if (game.winsP1 >= targetWins || game.winsP2 >= targetWins) {
             game.state = GameState.AwaitingReferee;
+            game.winner = game.winsP1 >= targetWins ? game.player1 : game.player2;
+            game.resolvedAt = uint64(block.timestamp);
+            emit GameResolved(gameId, game.winner, game.referee);
             emit GameAwaitingReferee(gameId);
         } else {
             game.state = GameState.Committing;
@@ -268,6 +293,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
 
     function _verifySignature(
         uint256 gameId,
+        address referee,
         address winner,
         uint256 amount,
         uint256 nonce,
@@ -280,7 +306,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
             keccak256(abi.encode(REFEREE_TYPEHASH, gameId, winner, amount, nonce));
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = digest.recover(signature);
-        if (signer != refereeAddress) revert InvalidSignature();
+        if (signer != referee) revert InvalidSignature();
     }
 
     function _sendValue(address to, uint256 amount) internal {

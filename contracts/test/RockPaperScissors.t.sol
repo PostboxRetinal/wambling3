@@ -5,7 +5,6 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 
 import {RockPaperScissors} from "../src/RockPaperScissors.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract RockPaperScissorsTest is Test {
     RockPaperScissors private rps;
@@ -22,7 +21,7 @@ contract RockPaperScissorsTest is Test {
 
     function setUp() external {
         referee = vm.addr(refereeKey);
-        rps = new RockPaperScissors(referee);
+        rps = new RockPaperScissors();
 
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
@@ -33,7 +32,7 @@ contract RockPaperScissorsTest is Test {
         uint256 aliceStart = alice.balance;
 
         vm.prank(alice);
-        uint256 gameId = rps.createGame{value: BET}(3);
+        uint256 gameId = rps.createGame{value: BET}(3, referee);
 
         vm.prank(bob);
         rps.joinGame{value: BET}(gameId);
@@ -53,7 +52,7 @@ contract RockPaperScissorsTest is Test {
         _reveal(gameId, alice, RockPaperScissors.Move.Scissors, bytes32("salt5"));
         _reveal(gameId, bob, RockPaperScissors.Move.Paper, bytes32("salt6"));
 
-        (,,,,,,,, RockPaperScissors.GameState state,) = rps.games(gameId);
+        RockPaperScissors.GameState state = rps.getGameState(gameId);
         assertEq(uint8(state), uint8(RockPaperScissors.GameState.AwaitingReferee));
 
         bytes memory signature = _signReferee(gameId, alice, 2 ether, 0);
@@ -61,7 +60,7 @@ contract RockPaperScissorsTest is Test {
         vm.prank(alice);
         rps.claimPrize(gameId, signature);
 
-        (,,,,,,,, state,) = rps.games(gameId);
+        state = rps.getGameState(gameId);
         assertEq(uint8(state), uint8(RockPaperScissors.GameState.Paid));
         assertEq(rps.nonces(gameId), 1);
         assertEq(alice.balance, aliceStart - BET + 2 ether);
@@ -69,7 +68,7 @@ contract RockPaperScissorsTest is Test {
 
     function testClaimPrizeRejectsWrongSigner() external {
         vm.prank(alice);
-        uint256 gameId = rps.createGame{value: BET}(1);
+        uint256 gameId = rps.createGame{value: BET}(1, referee);
 
         vm.prank(bob);
         rps.joinGame{value: BET}(gameId);
@@ -89,7 +88,7 @@ contract RockPaperScissorsTest is Test {
 
     function testClaimPrizeRejectsNonPlayer() external {
         vm.prank(alice);
-        uint256 gameId = rps.createGame{value: BET}(1);
+        uint256 gameId = rps.createGame{value: BET}(1, referee);
 
         vm.prank(bob);
         rps.joinGame{value: BET}(gameId);
@@ -107,7 +106,7 @@ contract RockPaperScissorsTest is Test {
 
     function testClaimPrizePreventsReplay() external {
         vm.prank(alice);
-        uint256 gameId = rps.createGame{value: BET}(1);
+        uint256 gameId = rps.createGame{value: BET}(1, referee);
 
         vm.prank(bob);
         rps.joinGame{value: BET}(gameId);
@@ -127,30 +126,46 @@ contract RockPaperScissorsTest is Test {
         rps.claimPrize(gameId, signature);
     }
 
-    function testInitializeOnlyOnce() external {
-        vm.expectRevert(RockPaperScissors.InvalidState.selector);
-        rps.initialize(referee, address(this));
+    function testClaimPrizeTimeoutBeforeDelayReverts() external {
+        uint256 gameId = _startGameBestOf1();
+        _completeSingleRoundForAlice(gameId);
+
+        vm.prank(alice);
+        vm.expectRevert(RockPaperScissors.RefereeTimeoutNotReached.selector);
+        rps.claimPrizeTimeout(gameId);
     }
 
-    function testSetRefereeOnlyOwner() external {
+    function testClaimPrizeTimeoutAfterDelay() external {
+        uint256 aliceStart = alice.balance;
+        uint256 gameId = _startGameBestOf1();
+        _completeSingleRoundForAlice(gameId);
+
+        vm.warp(block.timestamp + rps.REFEREE_TIMEOUT() + 1);
+
         vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice)
-        );
-        rps.setRefereeAddress(bob);
+        rps.claimPrizeTimeout(gameId);
+
+        RockPaperScissors.GameState timeoutState = rps.getGameState(gameId);
+        assertEq(uint8(timeoutState), uint8(RockPaperScissors.GameState.Paid));
+        assertEq(alice.balance, aliceStart - BET + 2 ether);
+    }
+
+    function testInitializeOnlyOnce() external {
+        vm.expectRevert(RockPaperScissors.InvalidState.selector);
+        rps.initialize(address(this));
     }
 
     function testCreateGameRejectsInvalidParams() external {
         vm.expectRevert(RockPaperScissors.InvalidParams.selector);
-        rps.createGame{value: BET}(2);
+        rps.createGame{value: BET}(2, referee);
 
         vm.expectRevert(RockPaperScissors.InvalidParams.selector);
-        rps.createGame(3);
+        rps.createGame(3, referee);
     }
 
     function testJoinGameStakeMismatch() external {
         vm.prank(alice);
-        uint256 gameId = rps.createGame{value: BET}(1);
+        uint256 gameId = rps.createGame{value: BET}(1, referee);
 
         vm.prank(bob);
         vm.expectRevert(RockPaperScissors.StakeMismatch.selector);
@@ -196,27 +211,23 @@ contract RockPaperScissorsTest is Test {
     }
 
     function testRefereeCannotCreateGame() external {
-        RockPaperScissors local = new RockPaperScissors(alice);
-
         vm.prank(alice);
         vm.expectRevert(RockPaperScissors.InvalidParams.selector);
-        local.createGame{value: BET}(1);
+        rps.createGame{value: BET}(1, alice);
     }
 
     function testRefereeCannotJoinGame() external {
-        RockPaperScissors local = new RockPaperScissors(bob);
-
         vm.prank(alice);
-        uint256 gameId = local.createGame{value: BET}(1);
+        uint256 gameId = rps.createGame{value: BET}(1, bob);
 
         vm.prank(bob);
         vm.expectRevert(RockPaperScissors.InvalidParams.selector);
-        local.joinGame{value: BET}(gameId);
+        rps.joinGame{value: BET}(gameId);
     }
 
     function _startGameBestOf1() internal returns (uint256 gameId) {
         vm.prank(alice);
-        gameId = rps.createGame{value: BET}(1);
+        gameId = rps.createGame{value: BET}(1, referee);
 
         vm.prank(bob);
         rps.joinGame{value: BET}(gameId);

@@ -56,7 +56,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     event FeesWithdrawn(address indexed to, uint256 amount);
     event SessionRemoved(bytes16 indexed sessionId);
     event RpsImplementationUpdated(address indexed implementation);
-    event RpsCloneCreated(address indexed clone, address indexed owner, address indexed referee);
+    event RpsCloneCreated(address indexed clone, address indexed owner);
 
     error InvalidParams();
     error UnknownSession();
@@ -80,15 +80,14 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     }
 
     /// @notice Deploy an EIP-1167 clone for a RockPaperScissors game.
-    /// @dev Initializes the clone with the referee and the caller as owner.
-    function createRpsClone(address referee) external returns (address clone) {
+    /// @dev Initializes the clone with the caller as owner.
+    function createRpsClone() external returns (address clone) {
         if (rpsImplementation == address(0)) revert ImplementationNotSet();
-        if (referee == address(0) || referee == msg.sender) revert InvalidParams();
 
         clone = Clones.clone(rpsImplementation);
-        RockPaperScissors(clone).initialize(referee, msg.sender);
+        RockPaperScissors(clone).initialize(msg.sender);
 
-        emit RpsCloneCreated(clone, msg.sender, referee);
+        emit RpsCloneCreated(clone, msg.sender);
     }
 
     /// @notice Create a new off-chain session by staking the wager in escrow.

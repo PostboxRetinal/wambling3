@@ -25,10 +25,6 @@ export type CreateSessionParams = {
   betAmount: string;
 };
 
-export type CreateRpsCloneParams = {
-  refereeAddress: string;
-};
-
 export type SetRpsImplementationParams = {
   implementationAddress: string;
 };

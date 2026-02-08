@@ -20,6 +20,8 @@ import type { GameId } from "@/types/game.types";
 import { useWalletBalance } from "@/hooks/web3/useWallet";
 import { createPublicClient, formatEther, http, isAddress } from "viem";
 import { useSearchParams } from "next/navigation";
+import { useRpsGame } from "@/hooks/web3/useRpsGame";
+import { useRpsReferee } from "@/hooks/web3/useRpsReferee";
 
 export const Bowl = () => {
   const searchParams = useSearchParams();
@@ -45,9 +47,28 @@ export const Bowl = () => {
   const [flowMode, setFlowMode] = useState<"create" | "join">("create");
   const [sessionIdInput, setSessionIdInput] = useState("");
   const [copiedSession, setCopiedSession] = useState(false);
+  const [escrowTouched, setEscrowTouched] = useState(false);
+  const [escrowAddress, setEscrowAddress] = useState("");
+  const [lastEscrowAddress, setLastEscrowAddress] = useState("");
+  const [activeEscrow, setActiveEscrow] = useState("");
+  const [activeGameId, setActiveGameId] = useState("");
+  const [joinEscrowTouched, setJoinEscrowTouched] = useState(false);
+  const [joinEscrowAddress, setJoinEscrowAddress] = useState("");
+  const [joinGameId, setJoinGameId] = useState("");
+  const [joinBetAmount, setJoinBetAmount] = useState("");
+  const [playEscrowAddress, setPlayEscrowAddress] = useState("");
+  const [playGameId, setPlayGameId] = useState("");
+  const [playMove, setPlayMove] = useState<"rock" | "paper" | "scissors" | "">("");
+  const [playSalt, setPlaySalt] = useState("");
+  const [copiedSalt, setCopiedSalt] = useState(false);
+  const [autoSalt, setAutoSalt] = useState("");
+  const [refEscrowAddress, setRefEscrowAddress] = useState("");
+  const [refGameId, setRefGameId] = useState("");
+  const [refWinner, setRefWinner] = useState("");
+  const [copiedSignature, setCopiedSignature] = useState(false);
   const [refereeTouched, setRefereeTouched] = useState(false);
-  // [AGENT-GENERATED] Start empty; use env value only as placeholder.
   const [refereeAddress, setRefereeAddress] = useState("");
+  const [bestOf, setBestOf] = useState(3);
   const [implementationTouched, setImplementationTouched] = useState(false);
   const [implementationAddress, setImplementationAddress] = useState(
     process.env.NEXT_PUBLIC_RPS_IMPLEMENTATION_ADDRESS ?? "",
@@ -67,6 +88,21 @@ export const Bowl = () => {
   } = useGameSession({
     sessionId: sessionIdInput,
   });
+
+  const {
+    txState: rpsTxState,
+    resetTxState: resetRpsTxState,
+    createGame,
+    joinGame,
+    commitMove,
+    revealMove,
+  } = useRpsGame();
+
+  const {
+    state: refereeState,
+    signDecision,
+    loadGameInfo,
+  } = useRpsReferee();
 
   const { balance, isLoading: isBalanceLoading } = useWalletBalance();
   const { wallets } = useWallets();
@@ -89,6 +125,13 @@ export const Bowl = () => {
     !!currentAddress &&
     ownerAddress.toLowerCase() === currentAddress.toLowerCase();
 
+  const normalizedEscrow = escrowAddress.trim();
+  const isZeroEscrow =
+    normalizedEscrow.toLowerCase() ===
+    "0x0000000000000000000000000000000000000000";
+  const isEscrowValid =
+    !!normalizedEscrow && isAddress(normalizedEscrow) && !isZeroEscrow;
+
   const normalizedReferee = refereeAddress.trim();
   const isZeroReferee =
     normalizedReferee.toLowerCase() ===
@@ -105,12 +148,18 @@ export const Bowl = () => {
     isRefereeValid && !tablePlayers.has(normalizedReferee.toLowerCase());
   const refereeError = useMemo(() => {
     if (!refereeTouched) return null;
-    if (!normalizedReferee) return "Escrow is required.";
-    if (!isRefereeValid) return "Invalid escrow address.";
+    if (!normalizedReferee) return "Referee wallet is required.";
+    if (!isRefereeValid) return "Invalid referee address.";
     if (!isRefereeThirdParty)
-      return "Escrow cannot be a player at the table.";
+      return "Referee cannot be one of the players.";
     return null;
   }, [isRefereeThirdParty, isRefereeValid, normalizedReferee, refereeTouched]);
+  const escrowError = useMemo(() => {
+    if (!escrowTouched) return null;
+    if (!normalizedEscrow) return "Escrow address is required.";
+    if (!isEscrowValid) return "Invalid escrow address.";
+    return null;
+  }, [escrowTouched, isEscrowValid, normalizedEscrow]);
 
   const normalizedImplementation = implementationAddress.trim();
   const isImplementationValid =
@@ -132,8 +181,7 @@ export const Bowl = () => {
     !isAnimating &&
     !isSubmitting &&
     hasBalance &&
-    !isOverBalance &&
-    isRefereeThirdParty;
+    !isOverBalance;
 
   const formatAddress = (addr?: string | null) => {
     if (!addr) return "";
@@ -157,8 +205,71 @@ export const Bowl = () => {
   const canJoinOnsite =
     !!sessionIdInput &&
     !!joinAmount &&
-    !isJoinSubmitting &&
-    isRefereeThirdParty;
+    !isJoinSubmitting;
+
+  const isRpsSubmitting =
+    rpsTxState.status === "signing" || rpsTxState.status === "pending";
+  const isRpsJoinSubmitting = isRpsSubmitting && rpsTxState.action === "join";
+  const isRpsCreateSubmitting =
+    isRpsSubmitting && rpsTxState.action === "create";
+  const isRpsCommitSubmitting =
+    isRpsSubmitting && rpsTxState.action === "commit";
+  const isRpsRevealSubmitting =
+    isRpsSubmitting && rpsTxState.action === "reveal";
+  const isBestOfValid = bestOf >= 3 && bestOf <= 9 && bestOf % 2 === 1;
+  const canCreateRpsGame =
+    isEscrowValid &&
+    isRefereeThirdParty &&
+    isBestOfValid &&
+    isBetValid &&
+    !isOverBalance &&
+    !isRpsSubmitting;
+
+  const isRefereeLocked = !!activeEscrow || !!activeGameId || !!txState.cloneAddress;
+  const lockedFieldClass =
+    "text-sm bg-bg-tertiary border-border-primary text-text-primary opacity-60 cursor-not-allowed";
+  const editableFieldClass =
+    "text-sm bg-bg-tertiary border-border-primary text-text-primary";
+
+  const normalizedJoinEscrow = joinEscrowAddress.trim();
+  const isJoinEscrowValid =
+    !!normalizedJoinEscrow &&
+    isAddress(normalizedJoinEscrow) &&
+    normalizedJoinEscrow.toLowerCase() !==
+      "0x0000000000000000000000000000000000000000";
+  const isJoinGameIdValid =
+    joinGameId !== "" && Number.isFinite(Number(joinGameId));
+  const isJoinBetValid =
+    joinBetAmount !== "" && Number.isFinite(Number(joinBetAmount)) &&
+    Number(joinBetAmount) > 0;
+  const canJoinRpsGame =
+    isJoinEscrowValid &&
+    isJoinGameIdValid &&
+    isJoinBetValid &&
+    !isRpsJoinSubmitting;
+
+  const normalizedPlayEscrow = playEscrowAddress.trim();
+  const isPlayEscrowValid =
+    !!normalizedPlayEscrow &&
+    isAddress(normalizedPlayEscrow) &&
+    normalizedPlayEscrow.toLowerCase() !==
+      "0x0000000000000000000000000000000000000000";
+  const isPlayGameIdValid =
+    playGameId !== "" && Number.isFinite(Number(playGameId));
+  const isPlayMoveValid = playMove === "rock" || playMove === "paper" || playMove === "scissors";
+  const isPlaySaltValid = playSalt.trim().length > 0;
+  const canCommitMove =
+    isPlayEscrowValid &&
+    isPlayGameIdValid &&
+    isPlayMoveValid &&
+    isPlaySaltValid &&
+    !isRpsCommitSubmitting;
+  const canRevealMove =
+    isPlayEscrowValid &&
+    isPlayGameIdValid &&
+    isPlayMoveValid &&
+    isPlaySaltValid &&
+    !isRpsRevealSubmitting;
 
   const handleMaxBetWithBalance = () => {
     if (!hasBalance) return;
@@ -191,10 +302,167 @@ export const Bowl = () => {
   };
 
   const handleCreateEscrow = async () => {
-    if (!isRefereeThirdParty || isEscrowSubmitting) return;
+    if (isEscrowSubmitting) return;
     resetTxState();
-    await createRpsClone({ refereeAddress: normalizedReferee });
+    await createRpsClone();
   };
+
+  const handleCreateRpsGame = async () => {
+    if (!canCreateRpsGame) return;
+    resetRpsTxState();
+    await createGame({
+      escrowAddress: normalizedEscrow,
+      refereeAddress: normalizedReferee,
+      bestOf,
+      betAmount,
+    });
+  };
+
+  const handleJoinRpsGame = async () => {
+    if (!canJoinRpsGame) return;
+    resetRpsTxState();
+    await joinGame({
+      escrowAddress: normalizedJoinEscrow,
+      gameId: joinGameId,
+      betAmount: joinBetAmount,
+    });
+  };
+
+  const handleCommitMove = async () => {
+    if (!canCommitMove || !isPlayMoveValid) return;
+    resetRpsTxState();
+    await commitMove({
+      escrowAddress: normalizedPlayEscrow,
+      gameId: playGameId,
+      move: playMove,
+      salt: playSalt,
+    });
+  };
+
+  const handleRevealMove = async () => {
+    if (!canRevealMove || !isPlayMoveValid) return;
+    resetRpsTxState();
+    await revealMove({
+      escrowAddress: normalizedPlayEscrow,
+      gameId: playGameId,
+      move: playMove,
+      salt: playSalt,
+    });
+  };
+
+  const handleLoadRefereeGameInfo = async () => {
+    if (!refEscrowAddress || !refGameId) return;
+    await loadGameInfo({ escrowAddress: refEscrowAddress, gameId: refGameId });
+  };
+
+  const handleLoadSessionRpsStatus = async () => {
+    const escrow =
+      activeEscrow ||
+      refEscrowAddress ||
+      playEscrowAddress ||
+      joinEscrowAddress ||
+      escrowAddress;
+    const gameId =
+      activeGameId || refGameId || playGameId || joinGameId;
+
+    if (!escrow || !gameId) return;
+    await loadGameInfo({ escrowAddress: escrow, gameId });
+  };
+
+  useEffect(() => {
+    // [AGENT-GENERATED] Auto-refresh on-chain RPS status while a game is active.
+    const escrow =
+      activeEscrow ||
+      refEscrowAddress ||
+      playEscrowAddress ||
+      joinEscrowAddress ||
+      escrowAddress;
+    const gameId = activeGameId || refGameId || playGameId || joinGameId;
+
+    if (!escrow || !gameId) return;
+
+    const intervalId = window.setInterval(() => {
+      loadGameInfo({ escrowAddress: escrow, gameId });
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [
+    activeEscrow,
+    activeGameId,
+    escrowAddress,
+    joinEscrowAddress,
+    joinGameId,
+    loadGameInfo,
+    playEscrowAddress,
+    playGameId,
+    refEscrowAddress,
+    refGameId,
+  ]);
+
+  const handleSignReferee = async () => {
+    if (!refEscrowAddress || !refGameId || !refWinner) return;
+    await signDecision({
+      escrowAddress: refEscrowAddress,
+      gameId: refGameId,
+      winner: refWinner,
+    });
+  };
+
+  const handleCopySignature = async () => {
+    if (!refereeState.signature) return;
+    await navigator.clipboard.writeText(refereeState.signature);
+    setCopiedSignature(true);
+    setTimeout(() => setCopiedSignature(false), 2000);
+  };
+
+  const handleGenerateSalt = () => {
+    // [AGENT-GENERATED] Generate a random bytes32 salt and copy it into the input.
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const hex = `0x${Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")}`;
+    setAutoSalt(hex);
+    setPlaySalt(hex);
+  };
+
+  const handleCopySalt = async () => {
+    const value = playSalt || autoSalt;
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopiedSalt(true);
+    setTimeout(() => setCopiedSalt(false), 2000);
+  };
+
+  const rpsGameStateLabel = useMemo(() => {
+    switch (refereeState.gameState) {
+      case 0:
+        return "None";
+      case 1:
+        return "Waiting for opponent";
+      case 2:
+        return "Committing";
+      case 3:
+        return "Revealing";
+      case 4:
+        return "Awaiting referee";
+      case 5:
+        return "Paid";
+      case 6:
+        return "Cancelled";
+      default:
+        return "Unknown";
+    }
+  }, [refereeState.gameState]);
+
+  // [AGENT-GENERATED] Format referee pot in ETH for readability.
+  const refereePotEth = useMemo(() => {
+    if (!refereeState.pot) return null;
+    try {
+      return formatEther(BigInt(refereeState.pot));
+    } catch {
+      return null;
+    }
+  }, [refereeState.pot]);
 
   const handleSetImplementation = async () => {
     if (!canSetImplementation) return;
@@ -308,6 +576,57 @@ export const Bowl = () => {
     loadOwner();
   }, []);
 
+  useEffect(() => {
+    // [Agent-Generated] Persist the last created escrow and auto-fill the form.
+    if (txState.cloneAddress) {
+      setLastEscrowAddress(txState.cloneAddress);
+      setActiveEscrow((prev) => {
+        if (prev) return prev;
+        return txState.cloneAddress ? txState.cloneAddress : "";
+      });
+      if (!escrowTouched || !escrowAddress) {
+        setEscrowAddress(txState.cloneAddress);
+      }
+    }
+  }, [escrowAddress, escrowTouched, txState.cloneAddress]);
+
+  useEffect(() => {
+    // [AGENT-GENERATED] Lock escrow + game ID after on-chain create/join.
+    if (rpsTxState.status !== "confirmed" || !rpsTxState.action) return;
+
+    if (rpsTxState.action === "create") {
+      if (normalizedEscrow) setActiveEscrow(normalizedEscrow);
+      if (rpsTxState.gameId) setActiveGameId(rpsTxState.gameId);
+    }
+
+    if (rpsTxState.action === "join") {
+      if (normalizedJoinEscrow) setActiveEscrow(normalizedJoinEscrow);
+      if (joinGameId) setActiveGameId(joinGameId);
+    }
+  }, [
+    joinGameId,
+    normalizedEscrow,
+    normalizedJoinEscrow,
+    rpsTxState.action,
+    rpsTxState.gameId,
+    rpsTxState.status,
+  ]);
+
+  useEffect(() => {
+    // [AGENT-GENERATED] Propagate active escrow/gameId to all related fields.
+    if (activeEscrow) {
+      setEscrowAddress(activeEscrow);
+      setJoinEscrowAddress(activeEscrow);
+      setPlayEscrowAddress(activeEscrow);
+      setRefEscrowAddress(activeEscrow);
+    }
+    if (activeGameId) {
+      setJoinGameId(activeGameId);
+      setPlayGameId(activeGameId);
+      setRefGameId(activeGameId);
+    }
+  }, [activeEscrow, activeGameId]);
+
   return (
     <div className="space-y-4">
       <Card className="border-border-primary bg-linear-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm relative overflow-hidden">
@@ -392,8 +711,26 @@ export const Bowl = () => {
               <p className="text-sm text-text-secondary">
                 {isSessionLoading ? "Refreshing" : actionState.status}
               </p>
+              {refereeState.gameState !== null && (
+                <p className="text-xs text-text-tertiary mt-1">
+                  RPS: {rpsGameStateLabel}
+                  {refereeState.round !== null ? ` · Round ${refereeState.round}` : ""}
+                  {refereeState.winsP1 !== null && refereeState.winsP2 !== null
+                    ? ` · ${refereeState.winsP1}-${refereeState.winsP2}`
+                    : ""}
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleLoadSessionRpsStatus}
+                className="border-border-primary"
+              >
+                Load game status
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -478,15 +815,15 @@ export const Bowl = () => {
             </div>
           )}
 
-          {/* [Agent-Generated] Escrow / Referee input for RPS validation. */}
+          {/* [Agent-Generated] RPS escrow creation (referee is selected per game). */}
           <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                  Escrow / Referee
+                  RPS escrow
                 </p>
                 <p className="text-xs text-text-secondary">
-                  Must be a third-party wallet, different from the players.
+                  This deploys a game escrow. Referee is chosen per game when you start a match.
                 </p>
               </div>
               <Button
@@ -494,28 +831,12 @@ export const Bowl = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleCreateEscrow}
-                disabled={!isRefereeThirdParty || isEscrowSubmitting}
+                disabled={isEscrowSubmitting}
                 className="border-border-primary"
               >
-                {isEscrowSubmitting ? "Creating..." : "Create Escrow"}
+                {isEscrowSubmitting ? "Creating..." : "Create escrow"}
               </Button>
             </div>
-            <Input
-              value={refereeAddress}
-              onChange={(e) => {
-                setRefereeAddress(e.target.value);
-                setRefereeTouched(true);
-              }}
-              onBlur={() => setRefereeTouched(true)}
-              placeholder={
-                process.env.NEXT_PUBLIC_RPS_REFEREE_ADDRESS ||
-                "0xRefereeWallet"
-              }
-              className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
-            />
-            {refereeError && (
-              <p className="text-xs text-red-500">{refereeError}</p>
-            )}
             {txState.action === "create-escrow" && (
               <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
                 <p className="text-xs text-text-tertiary">
@@ -536,6 +857,478 @@ export const Bowl = () => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* [AGENT-GENERATED] On-chain RPS match setup with third-party referee. */}
+          <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                On-chain match
+              </p>
+              <p className="text-xs text-text-secondary">
+                Choose a third-party referee who will sign the final payout.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Escrow contract
+                </label>
+                <Input
+                  value={activeEscrow || escrowAddress}
+                  onChange={(e) => {
+                    if (activeEscrow) return;
+                    setEscrowAddress(e.target.value);
+                    setEscrowTouched(true);
+                  }}
+                  onBlur={() => setEscrowTouched(true)}
+                  readOnly={!!activeEscrow}
+                  placeholder={lastEscrowAddress || "0xEscrowAddress"}
+                  className={activeEscrow ? lockedFieldClass : editableFieldClass}
+                />
+                {lastEscrowAddress && (
+                  <p className="text-xs text-text-tertiary break-all">
+                    Last escrow: {lastEscrowAddress}
+                  </p>
+                )}
+                {escrowError && (
+                  <p className="text-xs text-red-500">{escrowError}</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Referee wallet
+                </label>
+                <Input
+                  value={refereeAddress}
+                  onChange={(e) => {
+                    if (isRefereeLocked) return;
+                    setRefereeAddress(e.target.value);
+                    setRefereeTouched(true);
+                  }}
+                  onBlur={() => setRefereeTouched(true)}
+                  readOnly={isRefereeLocked}
+                  placeholder="0xRefereeWallet"
+                  className={isRefereeLocked ? lockedFieldClass : editableFieldClass}
+                />
+                {refereeError && (
+                  <p className="text-xs text-red-500">{refereeError}</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Best of
+                </label>
+                <select
+                  value={bestOf}
+                  onChange={(e) => setBestOf(Number(e.target.value))}
+                  className="h-10 rounded-md border border-border-primary bg-bg-tertiary text-text-primary text-sm px-3"
+                >
+                  <option value={3}>Best of 3</option>
+                  <option value={5}>Best of 5</option>
+                  <option value={7}>Best of 7</option>
+                  <option value={9}>Best of 9</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Bet (ETH)
+                </label>
+                <Input
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+                />
+                {!isBestOfValid && (
+                  <p className="text-xs text-red-500">
+                    Best-of must be an odd number between 3 and 9.
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={handleCreateRpsGame}
+              disabled={!canCreateRpsGame}
+              className="w-full"
+            >
+              {isRpsCreateSubmitting
+                ? "Creating on-chain match..."
+                : "Start on-chain match"}
+            </Button>
+            {rpsTxState.action === "create" && rpsTxState.hash && (
+              <p className="text-xs text-text-tertiary break-all">
+                Tx: {rpsTxState.hash}
+              </p>
+            )}
+            {rpsTxState.action === "create" && rpsTxState.gameId && (
+              <p className="text-xs text-text-tertiary">
+                Game ID: {rpsTxState.gameId}
+              </p>
+            )}
+            {rpsTxState.action === "create" && rpsTxState.error && (
+              <p className="text-xs text-red-500">{rpsTxState.error}</p>
+            )}
+          </div>
+
+          {/* [AGENT-GENERATED] Join an on-chain RPS match. */}
+          <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                Join on-chain match
+              </p>
+              <p className="text-xs text-text-secondary">
+                Paste the escrow address + game ID shared by the creator.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Escrow contract
+                </label>
+                <Input
+                  value={activeEscrow || joinEscrowAddress}
+                  onChange={(e) => {
+                    if (activeEscrow) return;
+                    setJoinEscrowAddress(e.target.value);
+                    setJoinEscrowTouched(true);
+                  }}
+                  onBlur={() => setJoinEscrowTouched(true)}
+                  readOnly={!!activeEscrow}
+                  placeholder={lastEscrowAddress || "0xEscrowAddress"}
+                  className={activeEscrow ? lockedFieldClass : editableFieldClass}
+                />
+                {!isJoinEscrowValid && joinEscrowTouched && (
+                  <p className="text-xs text-red-500">Invalid escrow address.</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Game ID
+                </label>
+                <Input
+                  value={activeGameId || joinGameId}
+                  onChange={(e) => {
+                    if (activeGameId) return;
+                    setJoinGameId(e.target.value);
+                  }}
+                  readOnly={!!activeGameId}
+                  placeholder="0"
+                  className={activeGameId ? lockedFieldClass : editableFieldClass}
+                />
+                {!isJoinGameIdValid && joinGameId !== "" && (
+                  <p className="text-xs text-red-500">Game ID must be a number.</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Bet (ETH)
+                </label>
+                <Input
+                  value={joinBetAmount}
+                  onChange={(e) => setJoinBetAmount(e.target.value)}
+                  placeholder="0.0"
+                  className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+                />
+                {!isJoinBetValid && joinBetAmount !== "" && (
+                  <p className="text-xs text-red-500">Bet must be greater than 0.</p>
+                )}
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={handleJoinRpsGame}
+              disabled={!canJoinRpsGame}
+              className="w-full"
+            >
+              {isRpsJoinSubmitting ? "Joining on-chain match..." : "Join on-chain match"}
+            </Button>
+            {rpsTxState.action === "join" && rpsTxState.hash && (
+              <p className="text-xs text-text-tertiary break-all">
+                Tx: {rpsTxState.hash}
+              </p>
+            )}
+            {rpsTxState.action === "join" && rpsTxState.error && (
+              <p className="text-xs text-red-500">{rpsTxState.error}</p>
+            )}
+          </div>
+
+          {/* [AGENT-GENERATED] Commit and reveal moves. */}
+          <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                Play your round
+              </p>
+              <p className="text-xs text-text-secondary">
+                Commit a move with a secret salt, then reveal with the same salt.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Escrow contract
+                </label>
+                <Input
+                  value={activeEscrow || playEscrowAddress}
+                  onChange={(e) => {
+                    if (activeEscrow) return;
+                    setPlayEscrowAddress(e.target.value);
+                  }}
+                  readOnly={!!activeEscrow}
+                  placeholder={lastEscrowAddress || "0xEscrowAddress"}
+                  className={activeEscrow ? lockedFieldClass : editableFieldClass}
+                />
+                {!isPlayEscrowValid && playEscrowAddress && (
+                  <p className="text-xs text-red-500">Invalid escrow address.</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Game ID
+                </label>
+                <Input
+                  value={activeGameId || playGameId}
+                  onChange={(e) => {
+                    if (activeGameId) return;
+                    setPlayGameId(e.target.value);
+                  }}
+                  readOnly={!!activeGameId}
+                  placeholder="0"
+                  className={activeGameId ? lockedFieldClass : editableFieldClass}
+                />
+                {!isPlayGameIdValid && playGameId !== "" && (
+                  <p className="text-xs text-red-500">Game ID must be a number.</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Move
+                </label>
+                <select
+                  value={playMove}
+                  onChange={(e) => setPlayMove(e.target.value as typeof playMove)}
+                  className="h-10 rounded-md border border-border-primary bg-bg-tertiary text-text-primary text-sm px-3"
+                >
+                  <option value="">Select move</option>
+                  <option value="rock">Rock</option>
+                  <option value="paper">Paper</option>
+                  <option value="scissors">Scissors</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Salt (keep secret)
+                </label>
+                <Input
+                  value={playSalt}
+                  onChange={(e) => setPlaySalt(e.target.value)}
+                  placeholder="my-secret-salt or 0x... (32 bytes)"
+                  className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+                />
+                {!isPlaySaltValid && playSalt !== "" && (
+                  <p className="text-xs text-red-500">Salt is required.</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateSalt}
+                    className="border-border-primary"
+                  >
+                    Generate salt
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopySalt}
+                    className="border-border-primary"
+                  >
+                    {copiedSalt ? "Salt copied" : "Copy salt"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={handleCommitMove}
+                disabled={!canCommitMove}
+                className="border-border-primary"
+              >
+                {isRpsCommitSubmitting ? "Committing..." : "Commit move"}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleRevealMove}
+                disabled={!canRevealMove}
+                className="border-border-primary"
+              >
+                {isRpsRevealSubmitting ? "Revealing..." : "Reveal move"}
+              </Button>
+            </div>
+            {rpsTxState.action === "commit" && rpsTxState.hash && (
+              <p className="text-xs text-text-tertiary break-all">
+                Commit tx: {rpsTxState.hash}
+              </p>
+            )}
+            {rpsTxState.action === "reveal" && rpsTxState.hash && (
+              <p className="text-xs text-text-tertiary break-all">
+                Reveal tx: {rpsTxState.hash}
+              </p>
+            )}
+            {(rpsTxState.action === "commit" || rpsTxState.action === "reveal") &&
+              rpsTxState.error && (
+                <p className="text-xs text-red-500">{rpsTxState.error}</p>
+              )}
+            <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-text-tertiary">
+                  Round status: {rpsGameStateLabel}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLoadRefereeGameInfo}
+                  className="border-border-primary"
+                >
+                  Refresh
+                </Button>
+              </div>
+              {refereeState.bestOf !== null && (
+                <p className="text-xs text-text-tertiary">
+                  Best of: {refereeState.bestOf}
+                </p>
+              )}
+              {refereeState.round !== null && (
+                <p className="text-xs text-text-tertiary">
+                  Round: {refereeState.round}
+                </p>
+              )}
+              {refereeState.winsP1 !== null && refereeState.winsP2 !== null && (
+                <p className="text-xs text-text-tertiary">
+                  Score: {refereeState.winsP1} - {refereeState.winsP2}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* [AGENT-GENERATED] Referee signature helper + game progress. */}
+          <div className="mt-4 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                Referee signature
+              </p>
+              <p className="text-xs text-text-secondary">
+                Referee signs the final payout once the game is complete.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Escrow contract
+                </label>
+                <Input
+                  value={activeEscrow || refEscrowAddress}
+                  onChange={(e) => {
+                    if (activeEscrow) return;
+                    setRefEscrowAddress(e.target.value);
+                  }}
+                  readOnly={!!activeEscrow}
+                  placeholder={lastEscrowAddress || "0xEscrowAddress"}
+                  className={activeEscrow ? lockedFieldClass : editableFieldClass}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Game ID
+                </label>
+                <Input
+                  value={activeGameId || refGameId}
+                  onChange={(e) => {
+                    if (activeGameId) return;
+                    setRefGameId(e.target.value);
+                  }}
+                  readOnly={!!activeGameId}
+                  placeholder="0"
+                  className={activeGameId ? lockedFieldClass : editableFieldClass}
+                />
+              </div>
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Winner address
+                </label>
+                <Input
+                  value={refWinner}
+                  onChange={(e) => setRefWinner(e.target.value)}
+                  placeholder="0xWinnerAddress"
+                  className="text-sm bg-bg-tertiary border-border-primary text-text-primary"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleLoadRefereeGameInfo}
+                className="border-border-primary"
+              >
+                Load game info
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSignReferee}
+                className="border-border-primary"
+              >
+                {refereeState.status === "signing"
+                  ? "Signing..."
+                  : "Generate referee signature"}
+              </Button>
+            </div>
+            <div className="rounded-lg border border-border-primary bg-bg-secondary/60 p-3 space-y-1">
+              <p className="text-xs text-text-tertiary">
+                Game status: {rpsGameStateLabel}
+              </p>
+              {refereeState.player1 && (
+                <p className="text-xs text-text-tertiary break-all">
+                  Player 1: {refereeState.player1}
+                </p>
+              )}
+              {refereeState.player2 && (
+                <p className="text-xs text-text-tertiary break-all">
+                  Player 2: {refereeState.player2}
+                </p>
+              )}
+              {refereePotEth && (
+                <p className="text-xs text-text-tertiary">Pot: {refereePotEth} ETH</p>
+              )}
+              {refereeState.nonce && (
+                <p className="text-xs text-text-tertiary">Nonce: {refereeState.nonce}</p>
+              )}
+              {refereeState.signature && (
+                <div className="space-y-2">
+                  <p className="text-xs text-text-tertiary break-all">
+                    Signature: {refereeState.signature}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopySignature}
+                    className="border-border-primary"
+                  >
+                    {copiedSignature ? "Copied" : "Copy signature"}
+                  </Button>
+                </div>
+              )}
+              {refereeState.error && (
+                <p className="text-xs text-red-500">{refereeState.error}</p>
+              )}
+            </div>
           </div>
 
           {/* [Agent-Generated] Admin: set RPS implementation on SessionFactory. */}
