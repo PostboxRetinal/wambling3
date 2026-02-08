@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -82,7 +83,7 @@ contract SessionFactory is Ownable, ReentrancyGuard {
     /// @dev Initializes the clone with the referee and the caller as owner.
     function createRpsClone(address referee) external returns (address clone) {
         if (rpsImplementation == address(0)) revert ImplementationNotSet();
-        if (referee == address(0)) revert InvalidParams();
+        if (referee == address(0) || referee == msg.sender) revert InvalidParams();
 
         clone = Clones.clone(rpsImplementation);
         RockPaperScissors(clone).initialize(referee, msg.sender);

@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 import type { Hex, TransactionReceipt } from "viem";
 import type { GameId } from "@/types/game.types";
 
@@ -15,11 +16,17 @@ export type SessionFactoryTxState = {
   receipt: TransactionReceipt | null;
   estimatedGas: bigint | null;
   sessionId: string | null;
+  cloneAddress: string | null;
+  action: "create-session" | "create-escrow" | null;
 };
 
 export type CreateSessionParams = {
   gameId: GameId;
   betAmount: string;
+};
+
+export type CreateRpsCloneParams = {
+  refereeAddress: string;
 };
 
 export type SessionInfoRaw = readonly [

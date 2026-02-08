@@ -143,6 +143,15 @@ contract SessionFactoryTest is Test {
         factory.createRpsClone(address(0));
     }
 
+    function testCreateRpsCloneRejectsPlayerAsReferee() external {
+        RockPaperScissors implementation = new RockPaperScissors(address(0xBEEF));
+        factory.setRpsImplementation(address(implementation));
+
+        vm.prank(alice);
+        vm.expectRevert(SessionFactory.InvalidParams.selector);
+        factory.createRpsClone(alice);
+    }
+
     function testCreateRpsCloneInitializes() external {
         address referee = address(0xBEEF);
         RockPaperScissors implementation = new RockPaperScissors(referee);

@@ -112,6 +112,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
     function createGame(uint8 bestOf) external payable returns (uint256 gameId) {
         if (bestOf == 0 || bestOf % 2 == 0) revert InvalidParams();
         if (msg.value == 0) revert InvalidParams();
+        if (refereeAddress == msg.sender) revert InvalidParams();
 
         gameId = nextGameId++;
         games[gameId] = Game({
@@ -137,6 +138,7 @@ contract RockPaperScissors is Ownable, ReentrancyGuard, EIP712 {
         if (game.player1 == address(0) || game.player2 != address(0)) revert AlreadyJoined();
         if (msg.value != game.bet) revert StakeMismatch();
         if (msg.sender == game.player1) revert InvalidParams();
+        if (refereeAddress == msg.sender) revert InvalidParams();
 
         game.player2 = msg.sender;
         game.pot = game.bet + msg.value;

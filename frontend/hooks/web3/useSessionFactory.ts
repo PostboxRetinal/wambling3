@@ -1,3 +1,4 @@
+// [AGENT-GENERATED]
 // [Agent-Generated] Hook to create and track SessionFactory transactions.
 "use client";
 
@@ -26,6 +27,7 @@ import {
 } from "@/lib/contracts/sessionFactory";
 import type {
   CreateSessionParams,
+  CreateRpsCloneParams,
   SessionFactoryTxState,
 } from "@/types/sessionFactory.types";
 
@@ -36,6 +38,8 @@ const createInitialTxState = (): SessionFactoryTxState => ({
   receipt: null,
   estimatedGas: null,
   sessionId: null,
+  cloneAddress: null,
+  action: null,
 });
 
 export const useSessionFactory = () => {
@@ -153,6 +157,37 @@ export const useSessionFactory = () => {
     [],
   );
 
+  const decodeRpsCloneCreated = useCallback(
+    (receipt: TransactionReceipt): string | null => {
+      for (const log of receipt.logs) {
+        try {
+          const decoded = decodeEventLog({
+            abi: SESSION_FACTORY_ABI,
+            data: log.data,
+            topics: log.topics,
+          });
+
+          if (decoded.eventName === "RpsCloneCreated") {
+            const args = decoded.args as
+              | { clone?: `0x${string}` }
+              | readonly unknown[]
+              | undefined;
+
+            if (args && typeof args === "object" && "clone" in args) {
+              const clone = (args as { clone?: `0x${string}` }).clone;
+              if (clone) return clone;
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      return null;
+    },
+    [],
+  );
+
   const createSession = useCallback(
     async ({ gameId, betAmount }: CreateSessionParams) => {
       setTxState((prev) => ({
@@ -160,6 +195,8 @@ export const useSessionFactory = () => {
         status: "signing",
         error: null,
         sessionId: null,
+        cloneAddress: null,
+        action: "create-session",
       }));
 
       try {
@@ -224,6 +261,7 @@ export const useSessionFactory = () => {
           ...prev,
           status: "pending",
           hash,
+          action: "create-session",
         }));
 
         toast.message("Transaccion enviada", {
@@ -243,6 +281,7 @@ export const useSessionFactory = () => {
           status: "confirmed",
           receipt,
           sessionId: emittedSessionId ?? sessionId,
+          action: "create-session",
         }));
 
         toast.success("Sesion creada", {
@@ -266,6 +305,7 @@ export const useSessionFactory = () => {
           ...prev,
           status: "failed",
           error: message,
+          action: "create-session",
         }));
 
         toast.error("Error al crear la sesion", {
@@ -278,8 +318,109 @@ export const useSessionFactory = () => {
     [decodeSessionCreated, ensureCorrectChain, ensureWalletReady, publicClient],
   );
 
+  const createRpsClone = useCallback(
+    async ({ refereeAddress }: CreateRpsCloneParams) => {
+      setTxState((prev) => ({
+        ...prev,
+        status: "signing",
+        error: null,
+        cloneAddress: null,
+        action: "create-escrow",
+      }));
+
+      try {
+        const { provider, address } = await ensureWalletReady();
+        await ensureCorrectChain(provider as EIP1193Provider);
+
+        const walletClient = createWalletClient({
+          chain: SESSION_FACTORY_CHAIN,
+          transport: custom(provider),
+        });
+
+        const contractAddress = assertSessionFactoryAddress();
+
+        const simulation = await publicClient.simulateContract({
+          address: contractAddress,
+          abi: SESSION_FACTORY_ABI,
+          functionName: "createRpsClone",
+          args: [refereeAddress as `0x${string}`],
+          account: address,
+        });
+
+        const estimatedGas = await publicClient.estimateContractGas({
+          ...simulation.request,
+          account: address,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          estimatedGas,
+        }));
+
+        const hash = await walletClient.writeContract({
+          ...simulation.request,
+          gas: estimatedGas,
+        });
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "pending",
+          hash,
+          action: "create-escrow",
+        }));
+
+        toast.message("Escrow enviado", {
+          description: "Creando el contrato de escrow.",
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: 1,
+        });
+
+        const cloneAddress = decodeRpsCloneCreated(receipt);
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "confirmed",
+          receipt,
+          cloneAddress: cloneAddress ?? null,
+          action: "create-escrow",
+        }));
+
+        toast.success("Escrow creado", {
+          description: cloneAddress
+            ? `Escrow: ${cloneAddress}`
+            : "Escrow confirmado en la red.",
+        });
+
+        return { receipt, cloneAddress, hash };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No se pudo crear el escrow.";
+
+        setTxState((prev) => ({
+          ...prev,
+          status: "failed",
+          error: message,
+          action: "create-escrow",
+        }));
+
+        toast.error("Error al crear escrow", {
+          description: message,
+        });
+
+        throw error;
+      }
+    },
+    [decodeRpsCloneCreated, ensureCorrectChain, ensureWalletReady, publicClient],
+  );
+
   return {
     createSession,
+    createRpsClone,
     txState,
     resetTxState,
     chain: SESSION_FACTORY_CHAIN,
