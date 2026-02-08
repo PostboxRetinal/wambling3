@@ -10,8 +10,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
-
 export default function ProtectedLayout({
   children,
 }: {
