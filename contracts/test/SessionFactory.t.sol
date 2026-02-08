@@ -25,7 +25,9 @@ contract SessionFactoryTest is Test {
     }
 
     function testCreateJoinFinalize() external {
-        uint256 sessionId = factory.createSession{value: STAKE}(
+        bytes16 sessionId = bytes16(keccak256("session-1"));
+        factory.createSession{value: STAKE}(
+            sessionId,
             STAKE,
             SessionFactory.GameType.CoinFlip
         );
@@ -64,7 +66,9 @@ contract SessionFactoryTest is Test {
     }
 
     function testFinalizeRequiresOwner() external {
-        uint256 sessionId = factory.createSession{value: STAKE}(
+        bytes16 sessionId = bytes16(keccak256("session-2"));
+        factory.createSession{value: STAKE}(
+            sessionId,
             STAKE,
             SessionFactory.GameType.RockPaperScissors
         );
@@ -82,7 +86,9 @@ contract SessionFactoryTest is Test {
     function testCancelBeforeJoinRefundsCreator() external {
         uint256 creatorStart = address(this).balance;
 
-        uint256 sessionId = factory.createSession{value: STAKE}(
+        bytes16 sessionId = bytes16(keccak256("session-3"));
+        factory.createSession{value: STAKE}(
+            sessionId,
             STAKE,
             SessionFactory.GameType.CoinFlip
         );
@@ -95,7 +101,9 @@ contract SessionFactoryTest is Test {
     }
 
     function testWithdrawFees() external {
-        uint256 sessionId = factory.createSession{value: STAKE}(
+        bytes16 sessionId = bytes16(keccak256("session-4"));
+        factory.createSession{value: STAKE}(
+            sessionId,
             STAKE,
             SessionFactory.GameType.CoinFlip
         );

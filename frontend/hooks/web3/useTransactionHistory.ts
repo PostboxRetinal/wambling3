@@ -3,37 +3,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useWallets } from "@privy-io/react-auth";
-
-// [Agent-Generated] Type definition for Alchemy's asset transfer response.
-interface AlchemyTransfer {
-  hash: string;
-  from: string;
-  to: string | null;
-  value?: number;
-  blockNum: string;
-  metadata?: {
-    blockTimestamp: string;
-  };
-}
-
-// [Agent-Generated] Normalized transaction structure for UI consumption.
-interface Transaction {
-  hash: string;
-  from: string;
-  to: string | null;
-  value: string;
-  timestamp: string;
-  type: "sent" | "received";
-  blockNum: string;
-}
-
-// [Agent-Generated] Hook return type with transactions and loading state.
-interface UseTransactionHistoryResult {
-  transactions: Transaction[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
+import type {
+  AlchemyTransfer,
+  Transaction,
+  UseTransactionHistoryResult,
+} from "@/types/transaction.types";
 
 export const useTransactionHistory = (): UseTransactionHistoryResult => {
   const { wallets } = useWallets();

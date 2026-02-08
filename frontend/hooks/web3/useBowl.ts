@@ -1,17 +1,7 @@
 // [Agent-Generated] Bowl state + SessionFactory integration.
 import { useState, useCallback } from "react";
-import { type GameId, type GameMode } from "@/lib/contracts/sessionFactory";
+import type { Coin, UseBowlParams } from "@/types/bowl.types";
 import { useSessionFactory } from "@/hooks/web3/useSessionFactory";
-
-interface Coin {
-  id: number;
-  amount: string;
-}
-
-type UseBowlParams = {
-  selectedGame: GameId;
-  selectedMode: GameMode;
-};
 
 export const useBowl = ({ selectedGame, selectedMode }: UseBowlParams) => {
   const [betAmount, setBetAmount] = useState("");

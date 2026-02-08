@@ -3,13 +3,7 @@
 
 import { useEnsName, useEnsAvatar } from "wagmi";
 import { Address } from "viem";
-
-type UseENSResult = {
-  ensName?: string | null;
-  ensAvatar?: string | null;
-  isLoading: boolean;
-  isError: boolean;
-};
+import type { UseENSResult } from "@/types/ens.types";
 
 export function useENS(
   address?: Address

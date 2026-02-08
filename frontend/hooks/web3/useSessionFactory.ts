@@ -11,39 +11,23 @@ import {
   http,
   parseEther,
   type EIP1193Provider,
-  type Hex,
   type TransactionReceipt,
 } from "viem";
 import { toast } from "sonner";
 import {
   assertSessionFactoryAddress,
+  bytes16ToUuid,
+  generateUuidV4,
   GAME_TYPE_MAP,
   SESSION_FACTORY_ABI,
   SESSION_FACTORY_CHAIN,
   SESSION_FACTORY_RPC_URL,
-  type GameId,
+  uuidToBytes16,
 } from "@/lib/contracts/sessionFactory";
-
-export type SessionFactoryTxStatus =
-  | "idle"
-  | "signing"
-  | "pending"
-  | "confirmed"
-  | "failed";
-
-type SessionFactoryTxState = {
-  status: SessionFactoryTxStatus;
-  hash: Hex | null;
-  error: string | null;
-  receipt: TransactionReceipt | null;
-  estimatedGas: bigint | null;
-  sessionId: string | null;
-};
-
-type CreateSessionParams = {
-  gameId: GameId;
-  betAmount: string;
-};
+import type {
+  CreateSessionParams,
+  SessionFactoryTxState,
+} from "@/types/sessionFactory.types";
 
 const createInitialTxState = (): SessionFactoryTxState => ({
   status: "idle",
@@ -149,13 +133,13 @@ export const useSessionFactory = () => {
 
           if (decoded.eventName === "SessionCreated") {
             const args = decoded.args as
-              | { sessionId?: bigint }
+              | { sessionId?: `0x${string}` }
               | readonly unknown[]
               | undefined;
 
             if (args && typeof args === "object" && "sessionId" in args) {
-              const sessionId = (args as { sessionId?: bigint }).sessionId;
-              if (sessionId !== undefined) return sessionId.toString();
+              const sessionId = (args as { sessionId?: `0x${string}` }).sessionId;
+              if (sessionId) return bytes16ToUuid(sessionId);
             }
           }
         } catch (error) {
@@ -202,8 +186,11 @@ export const useSessionFactory = () => {
 
         const gameType = GAME_TYPE_MAP[gameId];
 
+        const sessionId = generateUuidV4();
+        const sessionIdBytes = uuidToBytes16(sessionId);
+
         const functionName = "createSession";
-        const args = [betWei, gameType] as const;
+        const args = [sessionIdBytes, betWei, gameType] as const;
         const value = betWei;
 
         // [Agent-Generated] Simulate to validate and build request.
@@ -249,24 +236,24 @@ export const useSessionFactory = () => {
           confirmations: 1,
         });
 
-        const sessionId = decodeSessionCreated(receipt);
+        const emittedSessionId = decodeSessionCreated(receipt);
 
         setTxState((prev) => ({
           ...prev,
           status: "confirmed",
           receipt,
-          sessionId,
+          sessionId: emittedSessionId ?? sessionId,
         }));
 
         toast.success("Sesion creada", {
-          description: sessionId
-            ? `Sesion: ${sessionId}`
+          description: emittedSessionId ?? sessionId
+            ? `Sesion: ${emittedSessionId ?? sessionId}`
             : "Sesion confirmada en la red.",
         });
 
         return {
           receipt,
-          sessionId,
+          sessionId: emittedSessionId ?? sessionId,
           hash,
         };
       } catch (error) {

@@ -7,10 +7,13 @@ import {
 } from "viem";
 import {
   assertSessionFactoryAddress,
+  isUuidV4,
   SESSION_FACTORY_ABI,
   SESSION_FACTORY_CHAIN,
   SESSION_FACTORY_RPC_URL,
+  uuidToBytes16,
 } from "@/lib/contracts/sessionFactory";
+import type { SessionInfoRaw } from "@/types/sessionFactory.types";
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +25,7 @@ export async function POST(request: Request) {
     const mode = body?.mode as string | undefined;
     const betAmount = body?.betAmount as string | undefined;
 
-    if (sessionId && !/^[0-9]+$/.test(sessionId)) {
+    if (sessionId && !isUuidV4(sessionId)) {
       return NextResponse.json(
         { ok: false, error: "Session ID invalido." },
         { status: 400 },
@@ -49,27 +52,28 @@ export async function POST(request: Request) {
       : null;
 
     // [Agent-Generated] Try to read session info if the address is provided.
-    const sessionInfoRaw: any = sessionId
+    const sessionInfoRaw = sessionId
       ? await publicClient
           .readContract({
             address: assertSessionFactoryAddress(),
             abi: SESSION_FACTORY_ABI,
             functionName: "sessionInfo",
-            args: [BigInt(sessionId)],
+            args: [uuidToBytes16(sessionId)],
           })
           .catch(() => null)
       : null;
+    const typedSessionInfo = sessionInfoRaw as SessionInfoRaw | null;
 
     // [Agent-Generated] Normalize session info into JSON-safe fields.
-    const sessionInfo = sessionInfoRaw
+    const sessionInfo = typedSessionInfo
       ? {
-          creator: sessionInfoRaw.creator ?? sessionInfoRaw[0],
-          opponent: sessionInfoRaw.opponent ?? sessionInfoRaw[1],
-          winner: sessionInfoRaw.winner ?? sessionInfoRaw[2],
-          stake: String(sessionInfoRaw.stake ?? sessionInfoRaw[3]),
-          gameType: Number(sessionInfoRaw.gameType ?? sessionInfoRaw[4]),
-          state: Number(sessionInfoRaw.state ?? sessionInfoRaw[5]),
-          createdAt: String(sessionInfoRaw.createdAt ?? sessionInfoRaw[6]),
+          creator: typedSessionInfo.creator ?? typedSessionInfo[0],
+          opponent: typedSessionInfo.opponent ?? typedSessionInfo[1],
+          winner: typedSessionInfo.winner ?? typedSessionInfo[2],
+          stake: String(typedSessionInfo.stake ?? typedSessionInfo[3]),
+          gameType: Number(typedSessionInfo.gameType ?? typedSessionInfo[4]),
+          state: Number(typedSessionInfo.state ?? typedSessionInfo[5]),
+          createdAt: String(typedSessionInfo.createdAt ?? typedSessionInfo[6]),
         }
       : null;
 

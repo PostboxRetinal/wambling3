@@ -8,13 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui";
-
-export type GameMode = "offchain";
-
-export type GameSelection = {
-  id: string;
-  mode: GameMode;
-};
+import type { GameSelectorModalProps } from "@/types/ui.types";
 
 // [Agent-Generated] Contract-aligned game options for UI selection.
 const GAME_OPTIONS = [
@@ -31,12 +25,6 @@ const GAME_OPTIONS = [
     mode: "offchain" as const,
   },
 ];
-
-type GameSelectorModalProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSelect: (selection: GameSelection) => void;
-};
 
 export const GameSelectorModal = ({
   open,

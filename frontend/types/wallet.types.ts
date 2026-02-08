@@ -1,9 +1,16 @@
-export type Wallet = {
-  id: string;
-  user_id: string;
-  wallet_id: string;
-  address: string;
-  type: string;
-  chain: string;
-  created_at: string;
-};
+import type { Chain } from "viem";
+
+export interface UseWalletBalanceProps {
+  chain?: Chain;
+}
+
+export interface SendTransactionParams {
+  to: string;
+  amount: string;
+}
+
+export interface TransactionState {
+  isSubmitting: boolean;
+  error: string | null;
+  success: boolean;
+}

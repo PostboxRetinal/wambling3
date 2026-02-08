@@ -14,6 +14,10 @@ import {
 } from "viem";
 import { sepolia } from "viem/chains";
 import { toast } from "sonner";
+import type {
+  RegistrationState,
+  UseRegisterENSResult,
+} from "@/types/ens.types";
 
 // [Agent-Generated] ENS Registrar Controller ABI (minimal for registration).
 const REGISTRAR_CONTROLLER_ABI = [
@@ -113,37 +117,6 @@ const ENS_PUBLIC_RESOLVER = (process.env.NEXT_PUBLIC_ENS_RESOLVER ||
 const ENS_REVERSE_REGISTRAR = (process.env.NEXT_PUBLIC_ENS_REVERSE_REGISTRAR ||
   "0x084b1c3C81545d370f3634392De611CaaBFf8148") as `0x${string}`;
 
-// [Agent-Generated] Registration state interface.
-interface RegistrationState {
-  status:
-    | "idle"
-    | "checking"
-    | "committing"
-    | "waiting"
-    | "ready"
-    | "registering"
-    | "completed"
-    | "error";
-  label: string | null;
-  commitment: string | null;
-  secret: string | null;
-  price: string | null;
-  duration: number;
-  waitTimeRemaining: number;
-  txHash: string | null;
-  error: string | null;
-}
-
-// [Agent-Generated] Hook return interface.
-interface UseRegisterENSResult {
-  state: RegistrationState;
-  checkAvailability: (label: string) => Promise<boolean>;
-  getPrice: (label: string, duration: number) => Promise<string>;
-  commitRegistration: (label: string, duration: number) => Promise<void>;
-  completeRegistration: () => Promise<void>;
-  setReverseRecord: (name: string) => Promise<void>;
-  reset: () => void;
-}
 
 export const useRegisterENS = (): UseRegisterENSResult => {
   const { wallets } = useWallets();

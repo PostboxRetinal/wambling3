@@ -8,12 +8,15 @@ import { Input } from "@/components/ui";
 import { useBowl } from "@/hooks/web3/useBowl";
 import { useGameSession } from "@/hooks/web3/useGameSession";
 import {
+  GameSelectorModal,
+} from "@/components/web3/GameSelectorModal";
+import {
   SESSION_FACTORY_CHAIN,
-  type GameId,
 } from "@/lib/contracts/sessionFactory";
+import type { GameId, GameSelection } from "@/types/game.types";
 import { useWalletBalance } from "@/hooks/web3/useWallet";
 import { formatEther } from "viem";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // [Agent-Generated] Map UI selection to contract game types.
 const GAME_LABELS: Record<string, string> = {
@@ -22,11 +25,13 @@ const GAME_LABELS: Record<string, string> = {
 };
 
 export const Bowl = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedGame = (searchParams.get("game") ?? "coinflip") as GameId;
   const sessionParam = searchParams.get("session") ?? "";
   const selectedGameLabel = GAME_LABELS[selectedGame] ?? "Coin Flip";
   const selectedMode = "offchain";
+  const [isGameModalOpen, setIsGameModalOpen] = useState(false);
   const {
     betAmount,
     setBetAmount,
@@ -42,10 +47,7 @@ export const Bowl = () => {
   // [Agent-Generated] Local session input + player UX state.
   const [flowMode, setFlowMode] = useState<"create" | "join">("create");
   const [sessionIdInput, setSessionIdInput] = useState("");
-  const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   const [copiedSession, setCopiedSession] = useState(false);
-  const [inviteWallet, setInviteWallet] = useState("");
-  const [copiedInvite, setCopiedInvite] = useState(false);
 
   const {
     snapshot,
@@ -68,12 +70,9 @@ export const Bowl = () => {
     txState.status === "signing" || txState.status === "pending";
   const canBet =
     isBetValid && !isAnimating && !isSubmitting && hasBalance && !isOverBalance;
-
-  const formatMaxBet = (value: number) =>
-    value
-      .toFixed(6)
-      .replace(/\.0+$/, "")
-      .replace(/(\.\d*?)0+$/, "$1");
+  const hasLiveStake = Boolean(snapshot?.stake);
+  const hasBidInput = betAmountNum > 0;
+  const isLive = hasLiveStake || hasBidInput;
 
   const formatAddress = (addr?: string | null) => {
     if (!addr) return "";
@@ -84,7 +83,7 @@ export const Bowl = () => {
     if (!snapshot?.stake) return "";
     try {
       return formatEther(BigInt(snapshot.stake));
-    } catch (error) {
+    } catch {
       return "";
     }
   }, [snapshot?.stake]);
@@ -98,7 +97,7 @@ export const Bowl = () => {
 
   const handleMaxBetWithBalance = () => {
     if (!hasBalance) return;
-    setBetAmount(formatMaxBet(balanceNum));
+    setBetAmount(balance ?? "");
   };
 
   const handleBetWithBalance = () => {
@@ -113,20 +112,16 @@ export const Bowl = () => {
     setTimeout(() => setCopiedSession(false), 2000);
   };
 
-  const handleCopyInvite = async () => {
-    if (!sessionIdInput) return;
-    const inviteLink = `${window.location.origin}/home/bowl?game=${selectedGame}&mode=offchain&session=${sessionIdInput}`;
-    const target = inviteWallet ? ` (${inviteWallet})` : "";
-    const message = `Unete a mi partida de ${selectedGameLabel} en ${SESSION_FACTORY_CHAIN.name}${target}. Sesion: ${sessionIdInput}. Link: ${inviteLink}`;
-    await navigator.clipboard.writeText(message);
-    setCopiedInvite(true);
-    setTimeout(() => setCopiedInvite(false), 2000);
-  };
 
   const handleJoinSession = async () => {
     if (canJoinOnsite) {
       await joinOnsite({ betAmount: stakeEth || joinAmount });
     }
+  };
+
+  const handleSelectGame = ({ id, mode }: GameSelection) => {
+    router.push(`/home/bowl?game=${id}&mode=${mode}`);
+    setIsGameModalOpen(false);
   };
 
   // [Agent-Generated] Contract sessions currently support 2 players only.
@@ -177,13 +172,24 @@ export const Bowl = () => {
       <Card className="border-border-primary bg-linear-to-br from-bg-secondary to-bg-tertiary backdrop-blur-sm relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5 animate-pulse" />
         <CardHeader>
-          <h3 className="text-2xl font-bold text-text-primary relative z-10">
-            Bowl
-          </h3>
-          <p className="text-sm text-text-secondary">
-            {selectedGameLabel} ·{" "}
-            Off-chain
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-2xl font-bold text-text-primary relative z-10">
+                Bowl
+              </h3>
+              <p className="text-sm text-text-secondary">
+                {selectedGameLabel} · Off-chain
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-border-primary bg-bg-tertiary text-text-primary hover:bg-primary/10"
+              onClick={() => setIsGameModalOpen(true)}
+            >
+              Cambiar juego
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="relative">
           {coins.map((coin) => (
@@ -293,9 +299,17 @@ export const Bowl = () => {
           <div className="mt-6 rounded-xl border border-border-primary bg-bg-tertiary/40 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
-                  Jugadores
-                </p>
+                <div className="flex items-center gap-2">
+                  {isLive && (
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                    </span>
+                  )}
+                  <p className="text-xs uppercase tracking-wider text-text-tertiary font-semibold">
+                    Jugadores
+                  </p>
+                </div>
                 <p className="text-sm text-text-secondary">
                   {snapshot?.players.length ?? 0}/2 conectados
                 </p>
@@ -312,9 +326,7 @@ export const Bowl = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {playerSlots.map((slot) => {
-                const slotKey = slot.address ?? `slot-${slot.index}`;
-                return (
+              {playerSlots.map((slot) => (
                   <div
                     key={slot.index}
                     className="rounded-lg border border-border-primary bg-bg-secondary/70 p-3"
@@ -327,20 +339,8 @@ export const Bowl = () => {
                         ? formatAddress(slot.address)
                         : "Esperando jugador"}
                     </p>
-                    <Input
-                      value={playerNames[slotKey] ?? ""}
-                      onChange={(e) =>
-                        setPlayerNames((prev) => ({
-                          ...prev,
-                          [slotKey]: e.target.value,
-                        }))
-                      }
-                      placeholder="Nombre temporal"
-                      className="mt-2 text-sm bg-bg-tertiary border-border-primary text-text-primary"
-                    />
                   </div>
-                );
-              })}
+                ))}
             </div>
 
             {sessionError && (
@@ -361,10 +361,11 @@ export const Bowl = () => {
                 <Input
                   value={sessionIdInput}
                   onChange={(e) => {
+                    if (flowMode !== "join") return;
                     setSessionIdInput(e.target.value);
-                    setFlowMode("join");
                     resetActionState();
                   }}
+                  readOnly={flowMode !== "join"}
                   placeholder="ID de sesion"
                   className="flex-1 text-sm bg-bg-tertiary border-border-primary text-text-primary"
                 />
@@ -382,30 +383,6 @@ export const Bowl = () => {
               </p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-text-secondary">
-                Wallet a invitar
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  value={inviteWallet}
-                  onChange={(e) => setInviteWallet(e.target.value)}
-                  placeholder="0x..."
-                  className="flex-1 text-sm bg-bg-tertiary border-border-primary text-text-primary"
-                />
-                <Button
-                  variant="outline"
-                  onClick={handleCopyInvite}
-                  disabled={!sessionIdInput}
-                  className="border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  {copiedInvite ? "Mensaje copiado" : "Copiar invitacion"}
-                </Button>
-              </div>
-              <p className="text-xs text-text-tertiary">
-                Copia el mensaje y envialo por chat o wallet.
-              </p>
-            </div>
           </div>
 
           {flowMode === "join" && (
@@ -502,7 +479,7 @@ export const Bowl = () => {
                 )}
                 {hasBalance && !isOverBalance && (
                   <p className="text-xs text-text-tertiary">
-                    Balance disponible: {formatMaxBet(balanceNum)} ETH
+                    Balance disponible: {balance} ETH
                   </p>
                 )}
               </div>
@@ -576,6 +553,11 @@ export const Bowl = () => {
           )}
         </CardContent>
       </Card>
+      <GameSelectorModal
+        open={isGameModalOpen}
+        onOpenChange={setIsGameModalOpen}
+        onSelect={handleSelectGame}
+      />
     </div>
   );
 };

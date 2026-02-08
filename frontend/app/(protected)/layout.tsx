@@ -1,10 +1,13 @@
 "use client";
 
+// [AGENT-GENERATED]
 import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { DiceIcon } from "@/components/common/DiceIcon";
 import { FullScreenLoader } from "@/components/common/FullScreenLoader";
 import { usePrivy } from "@privy-io/react-auth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ProtectedLayout({
   children,
@@ -12,9 +15,16 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const { ready, user } = usePrivy();
+  const router = useRouter();
 
-  if (!ready) {
-    return <FullScreenLoader message="Inicializando..." />;
+  useEffect(() => {
+    if (ready && !user) {
+      router.replace("/login");
+    }
+  }, [ready, router, user]);
+
+  if (!ready || (ready && !user)) {
+    return <FullScreenLoader message="Redirigiendo..." />;
   }
 
   return (

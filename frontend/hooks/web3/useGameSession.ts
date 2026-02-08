@@ -9,39 +9,22 @@ import {
   custom,
   http,
   parseEther,
-  type Hex,
   type EIP1193Provider,
-  type TransactionReceipt,
 } from "viem";
 import {
   assertSessionFactoryAddress,
+  isUuidV4,
   SESSION_FACTORY_ABI,
   SESSION_FACTORY_CHAIN,
   SESSION_FACTORY_RPC_URL,
+  uuidToBytes16,
 } from "@/lib/contracts/sessionFactory";
-
-type PlayerSnapshot = {
-  address: `0x${string}`;
-  joined: boolean;
-  stake: string;
-};
-
-type SessionSnapshot = {
-  sessionId: string;
-  players: PlayerSnapshot[];
-  stake?: string;
-  sessionState?: number;
-  creator?: `0x${string}` | null;
-  opponent?: `0x${string}` | null;
-  winner?: `0x${string}` | null;
-};
-
-type ActionState = {
-  status: "idle" | "signing" | "pending" | "confirmed" | "failed";
-  hash: Hex | null;
-  error: string | null;
-  receipt: TransactionReceipt | null;
-};
+import type {
+  ActionState,
+  PlayerSnapshot,
+  SessionSnapshot,
+  UseGameSessionParams,
+} from "@/types/gameSession.types";
 
 const createInitialActionState = (): ActionState => ({
   status: "idle",
@@ -49,10 +32,6 @@ const createInitialActionState = (): ActionState => ({
   error: null,
   receipt: null,
 });
-
-type UseGameSessionParams = {
-  sessionId: string;
-};
 
 export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
   const { authenticated } = usePrivy();
@@ -120,7 +99,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!sessionId || !/^[0-9]+$/.test(sessionId)) {
+    if (!sessionId || !isUuidV4(sessionId)) {
       setSnapshot(null);
       setError(null);
       return;
@@ -135,7 +114,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
         address: assertSessionFactoryAddress(),
         abi: SESSION_FACTORY_ABI,
         functionName: "sessionInfo",
-        args: [BigInt(sessionId)],
+        args: [uuidToBytes16(sessionId)],
       });
 
       const creator = info.creator ?? info[0];
@@ -180,7 +159,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
 
   const joinOnsite = useCallback(
     async ({ betAmount }: { betAmount: string }) => {
-      if (!sessionId || !/^[0-9]+$/.test(sessionId)) {
+      if (!sessionId || !isUuidV4(sessionId)) {
         throw new Error("ID de sesion invalido.");
       }
 
@@ -205,7 +184,7 @@ export const useGameSession = ({ sessionId }: UseGameSessionParams) => {
           address: assertSessionFactoryAddress(),
           abi: SESSION_FACTORY_ABI,
           functionName: "joinSession",
-          args: [BigInt(sessionId)],
+          args: [uuidToBytes16(sessionId)],
           account: address,
           value: betWei,
         });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
-import { createPublicClient, http, formatEther, parseEther, type Chain } from "viem";
+import { createPublicClient, http, formatEther, parseEther } from "viem";
 import { toast } from "sonner";
 import {
   mainnet,
@@ -13,21 +13,11 @@ import {
   arbitrum,
   polygon,
 } from "viem/chains";
-
-interface UseWalletBalanceProps {
-  chain?: Chain;
-}
-
-interface SendTransactionParams {
-  to: string;
-  amount: string;
-}
-
-interface TransactionState {
-  isSubmitting: boolean;
-  error: string | null;
-  success: boolean;
-}
+import type {
+  SendTransactionParams,
+  TransactionState,
+  UseWalletBalanceProps,
+} from "@/types/wallet.types";
 
 export const useWalletBalance = ({
   chain = sepolia,

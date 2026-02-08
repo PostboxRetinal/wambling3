@@ -6,8 +6,8 @@ import { DiceIcon } from "@/components/common/DiceIcon";
 import { useRouter } from "next/navigation";
 import {
   GameSelectorModal,
-  type GameSelection,
 } from "@/components/web3/GameSelectorModal";
+import type { GameSelection } from "@/types/game.types";
 
 export const StartBowl = () => {
   const router = useRouter();

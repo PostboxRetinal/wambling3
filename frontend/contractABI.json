@@ -100,9 +100,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       },
       {
         "indexed": true,
@@ -131,9 +131,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       },
       {
         "indexed": true,
@@ -150,9 +150,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       },
       {
         "indexed": false,
@@ -187,9 +187,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "name": "SessionRemoved",
@@ -243,6 +243,11 @@
   {
     "inputs": [
       {
+        "internalType": "bytes16",
+        "name": "sessionId",
+        "type": "bytes16"
+      },
+      {
         "internalType": "uint256",
         "name": "stake",
         "type": "uint256"
@@ -256,9 +261,9 @@
     "name": "createSession",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "stateMutability": "payable",
@@ -267,9 +272,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "name": "joinSession",
@@ -280,9 +285,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "name": "cancelSession",
@@ -293,9 +298,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "name": "removeSession",
@@ -306,9 +311,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "sessionId",
-        "type": "uint256"
+        "type": "bytes16"
       },
       {
         "internalType": "address",
@@ -326,9 +331,9 @@
     "name": "getActiveSessions",
     "outputs": [
       {
-        "internalType": "uint256[]",
+        "internalType": "bytes16[]",
         "name": "sessions",
-        "type": "uint256[]"
+        "type": "bytes16[]"
       }
     ],
     "stateMutability": "view",
@@ -339,22 +344,9 @@
     "name": "getAllSessions",
     "outputs": [
       {
-        "internalType": "uint256[]",
+        "internalType": "bytes16[]",
         "name": "",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextSessionId",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "type": "bytes16[]"
       }
     ],
     "stateMutability": "view",
@@ -376,9 +368,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes16",
         "name": "",
-        "type": "uint256"
+        "type": "bytes16"
       }
     ],
     "name": "sessionInfo",
